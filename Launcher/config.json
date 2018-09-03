@@ -9,7 +9,7 @@
     "environment": "backtesting", // "live-paper", "backtesting", "live-interactive", "live-interactive-iqfeed"
 
     // algorithm class selector
-    "algorithm-type-name": "BasicTemplateFrameworkAlgorithm",
+    "algorithm-type-name": "BasicTemplateAlgorithm",
 
     // Algorithm language selector - options CSharp, FSharp, VisualBasic, Python, Java
     "algorithm-language": "CSharp",
@@ -53,8 +53,8 @@
     "transaction-log": "",
 
     // To get your api access token go to quantconnect.com/account
-    "job-user-id": "0",
-    "api-access-token": "",
+    "job-user-id": "37707",
+    "api-access-token": "75e1c7b611a8f079161628c98d261515",
 
     // live data configuration
     "live-data-url": "ws://www.quantconnect.com/api/v2/live/data/",
