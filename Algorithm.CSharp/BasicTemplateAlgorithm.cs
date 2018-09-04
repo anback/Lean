@@ -18,6 +18,7 @@ using System.Collections.Generic;
 using QuantConnect.Data;
 using QuantConnect.Indicators;
 using QuantConnect.Interfaces;
+using QuantConnect.Securities;
 
 namespace QuantConnect.Algorithm.CSharp
 {
@@ -35,7 +36,7 @@ namespace QuantConnect.Algorithm.CSharp
         private const string ENTRY = "ENTRY"; 
         private const string EXIT = "EXIT";
         private Signal _lastSignal = new Signal{Time = DateTime.Now, Type = EXIT};
-        private static readonly decimal MEAN_REVERSION_THRESHOLD = new decimal(1.001);
+        private static readonly decimal MEAN_REVERSION_THRESHOLD = new decimal(0.001);
         private const int MINUTES = 1;
 
         public override void Initialize()
@@ -45,6 +46,7 @@ namespace QuantConnect.Algorithm.CSharp
             SetCash(100000);             //Set Strategy Cash
             // Find more symbols here: http://quantconnect.com/data
             AddEquity("SPY", Resolution.Second);
+            Securities["SPY"].FeeModel = new ConstantFeeTransactionModel((decimal) 0);
             _rateOfChangeRatio = ROCR("SPY", 1, Resolution.Minute);
         }
 
@@ -58,9 +60,10 @@ namespace QuantConnect.Algorithm.CSharp
             }
 
             if (_lastSignal.Type == ENTRY) return;
-            if (_rateOfChangeRatio.Current.Value < MEAN_REVERSION_THRESHOLD) return;
+            var meanReversion = _rateOfChangeRatio.Current.Value - 1;
+            if (Math.Abs(meanReversion) < MEAN_REVERSION_THRESHOLD) return;
             _lastSignal = new Signal{Time = data.Time, Type = ENTRY};
-            SetHoldings(_spy, 1);
+            SetHoldings(_spy, -1 * Math.Sign(meanReversion));
         }
 
         public bool CanRunLocally { get; } = true;
