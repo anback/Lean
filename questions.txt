@@ -1,0 +1,3 @@
+1. OnData for tick resolution, is there a function that is called per tick ? If i set equity resolution per tick it is calling it per second anyways => bad for my strategy
+
+C(6rc;MpPzjUSAEpe!FyLattU@S@;IOU
