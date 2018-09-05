@@ -8,8 +8,6 @@ let format = 'YYYYMMDD'
 let QUOTE = 'quote'
 let TRADE = 'trade'
 
-var archive = archiver('zip',   {zlib: { level: 9 } });
-
 let getUri = ({date, type}) => `https://s3-eu-west-1.amazonaws.com/public.bitmex.com/data/${type}/${date}.csv.gz` // 20180101
 let getPath = ({date, type}) => `./data/crypto/bitmex/tick/xbtusd/${date}_${type}.zip`
 
@@ -21,22 +19,33 @@ let mapQuote = ([timestamp, symbol, bidSize, bidPrice, askPrice, askSize]) =>
 let mapTrade = ([timestamp, symbol, side, amount, price, tickType, matchId, numb1, numb2]) =>
   [moment(timestamp).valueOf() - moment(timestamp).startOf('day').valueOf(), price, amount].join(',')
 
-['./data/crypto/bitmex', './data/crypto/bitmex/tick', './data/crypto/bitmex/tick/xbtusd'].forEach(path => {if (!fs.existsSync(path)) fs.mkdirSync(path)})
+if (!fs.existsSync('./data/crypto/bitmex')) fs.mkdirSync('./data/crypto/bitmex')
+if (!fs.existsSync('./data/crypto/bitmex/tick')) fs.mkdirSync('./data/crypto/bitmex/tick')
+if (!fs.existsSync('./data/crypto/bitmex/tick/xbtusd')) fs.mkdirSync('./data/crypto/bitmex/tick/xbtusd')
 
 let startDate = moment('2018-09-01')
-let endDate = moment('2018-09-02')
+let endDate = moment('2018-09-04')
 let date = startDate
 let dates = []
 while (date.valueOf() < endDate.valueOf()) { dates.push(date.format(format)); date.add(1, 'd')}
 
-
 let createTransform = (options) => new Transform({
     transform: function transformer(chunk, encoding, callback) {
         let {type} = options
-        let splits = chunk.toString('utf8').split(',')
-        if(splits[1] !== 'XBTUSD') return
-        if(type === TRADE) callback(false, mapTrade(splits, options))
-        if(type === QUOTE) callback(false, mapQuote(splits))
+        let rows = chunk.toString('utf8').split('\n')
+
+        rows =
+        rows.map(row => {
+          let data = row.split(',')
+          if(data[1] !== 'XBTUSD') return
+          data[0] = data[0].replace('D', 'T')
+          if(type === TRADE) return mapTrade(data, options)
+          if(type === QUOTE) return mapQuote(data, options)
+        })
+        .filter(r => !!r)
+
+        this.push(rows.join('\n'))
+        callback()
     }
   });
 
@@ -44,12 +53,13 @@ let createTransform = (options) => new Transform({
   dates
   .filter(date => !fs.existsSync(getPath({date, type})))
   .map(date => {
+    let stream =
     request(getUri({date, type}))
     .pipe(zlib.createGunzip())
     .pipe(createTransform({date, type}))
-    .pipe(stream => {
-      archive.pipe(fs.createWriteStream(getPath({date, type})))
-      archive.append(stream, { name: `${date}.csv` })
-      archive.finalize();
-    })
+
+    var archive = archiver('zip',   {zlib: { level: 9 } });
+    archive.pipe(fs.createWriteStream(getPath({date, type})))
+    archive.append(stream, { name: `${date}.csv` })
+    archive.finalize();
   }))
