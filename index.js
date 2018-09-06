@@ -23,11 +23,11 @@ if (!fs.existsSync('./data/crypto/bitmex')) fs.mkdirSync('./data/crypto/bitmex')
 if (!fs.existsSync('./data/crypto/bitmex/tick')) fs.mkdirSync('./data/crypto/bitmex/tick')
 if (!fs.existsSync('./data/crypto/bitmex/tick/xbtusd')) fs.mkdirSync('./data/crypto/bitmex/tick/xbtusd')
 
-let startDate = moment('2018-09-01')
-let endDate = moment('2018-09-04')
+let startDate = moment('2018-09-01').startOf('day')
+let endDate = moment().startOf('day')
 let date = startDate
 let dates = []
-while (date.valueOf() < endDate.valueOf()) { dates.push(date.format(format)); date.add(1, 'd')}
+while (date.valueOf() <= endDate.valueOf()) { dates.push(date.format(format)); date.add(1, 'd')}
 
 let createTransform = (options) => new Transform({
     transform: function transformer(chunk, encoding, callback) {
@@ -49,7 +49,7 @@ let createTransform = (options) => new Transform({
     }
   });
 
-[QUOTE].forEach(type =>
+[TRADE].forEach(type =>
   dates
   .filter(date => !fs.existsSync(getPath({date, type})))
   .map(date => {
