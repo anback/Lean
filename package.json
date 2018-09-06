@@ -9,7 +9,8 @@
     "archiver": "^3.0.0",
     "moment": "^2.22.2",
     "request": "^2.88.0",
-    "request-promise": "^4.2.2"
+    "request-promise": "^4.2.2",
+    "stream-progressbar": "^1.1.1"
   },
   "scripts": {
     "start": "node index.js",

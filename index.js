@@ -4,6 +4,7 @@ let moment = require('moment')
 let {Transform} = require('stream')
 let zlib = require('zlib')
 let archiver = require('archiver')
+var progress = require('stream-progressbar');
 let format = 'YYYYMMDD'
 let QUOTE = 'quote'
 let TRADE = 'trade'
@@ -23,8 +24,8 @@ if (!fs.existsSync('./data/crypto/bitmex')) fs.mkdirSync('./data/crypto/bitmex')
 if (!fs.existsSync('./data/crypto/bitmex/tick')) fs.mkdirSync('./data/crypto/bitmex/tick')
 if (!fs.existsSync('./data/crypto/bitmex/tick/xbtusd')) fs.mkdirSync('./data/crypto/bitmex/tick/xbtusd')
 
-let startDate = moment('2018-09-01').startOf('day')
-let endDate = moment().startOf('day')
+let startDate = moment('2018-09-04').startOf('day')
+let endDate = moment('2018-09-04').startOf('day')
 let date = startDate
 let dates = []
 while (date.valueOf() <= endDate.valueOf()) { dates.push(date.format(format)); date.add(1, 'd')}
@@ -49,17 +50,19 @@ let createTransform = (options) => new Transform({
     }
   });
 
-[TRADE].forEach(type =>
+[QUOTE].forEach(type =>
   dates
-  .filter(date => !fs.existsSync(getPath({date, type})))
+  // .filter(date => !fs.existsSync(getPath({date, type})))
   .map(date => {
+    let path = getPath({date, type})
     let stream =
     request(getUri({date, type}))
+    .pipe(progress(`${path} [:bar] :rate/bps :percent :etas`))
     .pipe(zlib.createGunzip())
     .pipe(createTransform({date, type}))
 
     var archive = archiver('zip',   {zlib: { level: 9 } });
-    archive.pipe(fs.createWriteStream(getPath({date, type})))
+    archive.pipe(fs.createWriteStream(path))
     archive.append(stream, { name: `${date}.csv` })
     archive.finalize();
   }))
