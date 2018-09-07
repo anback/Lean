@@ -15,11 +15,15 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using QuantConnect.Brokerages;
 using QuantConnect.Data;
 using QuantConnect.Indicators;
 using QuantConnect.Interfaces;
+using QuantConnect.Orders.Fills;
 using QuantConnect.Securities;
+using QuantConnect.Securities.Crypto;
+using QuantConnect.Util;
 
 namespace QuantConnect.Algorithm.CSharp
 {
@@ -33,45 +37,50 @@ namespace QuantConnect.Algorithm.CSharp
     public class SnowflakeBitMEXMeanReversionAlgorithm : QCAlgorithm
     {
         private const string BITMEX = "bitmex";
-        private readonly Symbol _xbtusd = QuantConnect.Symbol.Create("XBTUSD", SecurityType.Crypto, Market.GDAX);
         private RateOfChangeRatio _rateOfChangeRatio;
         private const string ENTRY = "ENTRY"; 
         private const string EXIT = "EXIT";
         private Signal _lastSignal = new Signal{Time = DateTime.Now, Type = EXIT};
         private static readonly decimal MEAN_REVERSION_THRESHOLD = new decimal(0.001);
+        private Crypto _xbtusd;
         private const int MINUTES = 1;
+        private decimal bidPrice = 0;
+        private decimal askPrice = 0;
 
         public override void Initialize()
         {
             //20180904
             SetStartDate(2018, 9, 3);  //Set Start Date
             SetEndDate(2018, 9, 4);    //Set End Date
-            SetCash(10000);
-            SetCash("XBT", 1m, 7300m);
-            // Find more symbols here: http://quantconnect.com/data
-            AddCrypto("XBTUSD", Resolution.Tick, Market.GDAX);
+            SetCash(100000); 
+
+            _xbtusd = AddCrypto("XBTUSD", Resolution.Tick, Market.GDAX);
             Securities["XBTUSD"].FeeModel = new ConstantFeeTransactionModel(0);
             _rateOfChangeRatio = ROCR("XBTUSD", 1, Resolution.Minute);
-
-            SetBrokerageModel(BrokerageName.QuantConnectBrokerage);            
+            
+            _xbtusd.SetMarginModel(new SecurityMarginModel());
         }
 
         public override void OnData(Slice data)
         {
-            if (Portfolio.Invested && _lastSignal.Type == ENTRY && (data.Time - _lastSignal.Time).Minutes > MINUTES)
+            if (Portfolio.CashBook["XBT"].ConversionRate == 0) return;
+
+            if (Portfolio.Invested && _lastSignal.Type == ENTRY && (data.Time - _lastSignal.Time).Minutes >= MINUTES)
             {
+                Debug($"Sold {data.Time} _lastSignal.Time {_lastSignal.Time}");
                 _lastSignal = new Signal{Time = data.Time, Type = EXIT};
-                SetHoldings(_xbtusd, 0);    
-                Debug("Sold");
+                SetHoldings(_xbtusd.Symbol, 0);    
                 return;
             }
 
             if (_lastSignal.Type == ENTRY) return;
             var meanReversion = _rateOfChangeRatio.Current.Value - 1;
+            if (meanReversion == 1) return;
+            if (meanReversion == -1) return;
             if (Math.Abs(meanReversion) < MEAN_REVERSION_THRESHOLD) return;
             _lastSignal = new Signal{Time = data.Time, Type = ENTRY};
-            SetHoldings(_xbtusd, -1 * Math.Sign(meanReversion));
-            Debug("Bought");
+            SetHoldings(_xbtusd.Symbol, -1 * Math.Sign(meanReversion));
+            Debug($"Bought {data.Time} meanReversion {meanReversion}");
         }
     }
 }

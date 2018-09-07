@@ -1,0 +1,5 @@
+delta underliggande
+theta tiden
+gamma underliggande 2 ggr (accelerationen)
+vega volatiliteten
+rho räntant
