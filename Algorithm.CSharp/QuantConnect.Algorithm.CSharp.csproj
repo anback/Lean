@@ -94,7 +94,9 @@
     <Compile Include="BasicTemplateOptionsFrameworkAlgorithm.cs" />
     <Compile Include="BlackLittermanPortfolioOptimizationFrameworkAlgorithm.cs" />
     <Compile Include="MeanVarianceOptimizationFrameworkAlgorithm.cs" />
-    <Compile Include="SnowflakeMeanReversion.cs" />
+    <Compile Include="Signal.cs" />
+    <Compile Include="SnowflakeBitMEXMeanReversionAlgorithm.cs" />
+    <Compile Include="SnowflakeMeanReversionAlgorithm.cs" />
     <Compile Include="TiingoDailyDataAlgorithm.cs" />
     <Compile Include="OptionExpiryDateOnHolidayCase.cs" />
     <Compile Include="OptionDataNullReferenceRegressionAlgorithm.cs" />

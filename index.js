@@ -10,7 +10,7 @@ let QUOTE = 'quote'
 let TRADE = 'trade'
 
 let getUri = ({date, type}) => `https://s3-eu-west-1.amazonaws.com/public.bitmex.com/data/${type}/${date}.csv.gz` // 20180101
-let getPath = ({date, type}) => `./data/crypto/bitmex/tick/xbtusd/${date}_${type}.zip`
+let getPath = ({date, type}) => `./data/crypto/gdax/tick/xbtusd/${date}_${type}.zip`
 
 // input: 2018-09-01D04:03:41.128828000,XBTUSD,585783,7063.5,7064,142932
 let mapQuote = ([timestamp, symbol, bidSize, bidPrice, askPrice, askSize]) =>
@@ -20,11 +20,11 @@ let mapQuote = ([timestamp, symbol, bidSize, bidPrice, askPrice, askSize]) =>
 let mapTrade = ([timestamp, symbol, side, amount, price, tickType, matchId, numb1, numb2]) =>
   [moment(timestamp).valueOf() - moment(timestamp).startOf('day').valueOf(), price, amount].join(',')
 
-if (!fs.existsSync('./data/crypto/bitmex')) fs.mkdirSync('./data/crypto/bitmex')
-if (!fs.existsSync('./data/crypto/bitmex/tick')) fs.mkdirSync('./data/crypto/bitmex/tick')
-if (!fs.existsSync('./data/crypto/bitmex/tick/xbtusd')) fs.mkdirSync('./data/crypto/bitmex/tick/xbtusd')
+if (!fs.existsSync('./data/crypto/gdax')) fs.mkdirSync('./data/crypto/gdax')
+if (!fs.existsSync('./data/crypto/gdax/tick')) fs.mkdirSync('./data/crypto/gdax/tick')
+if (!fs.existsSync('./data/crypto/gdax/tick/xbtusd')) fs.mkdirSync('./data/crypto/gdax/tick/xbtusd')
 
-let startDate = moment('2018-09-04').startOf('day')
+let startDate = moment('2018-09-03').startOf('day')
 let endDate = moment('2018-09-04').startOf('day')
 let date = startDate
 let dates = []
@@ -50,9 +50,9 @@ let createTransform = (options) => new Transform({
     }
   });
 
-[QUOTE].forEach(type =>
+[QUOTE, TRADE].forEach(type =>
   dates
-  // .filter(date => !fs.existsSync(getPath({date, type})))
+  .filter(date => !fs.existsSync(getPath({date, type})))
   .map(date => {
     let path = getPath({date, type})
     let stream =

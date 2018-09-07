@@ -15,6 +15,7 @@
 
 using System;
 using System.Collections.Generic;
+using QuantConnect.Brokerages;
 using QuantConnect.Data;
 using QuantConnect.Indicators;
 using QuantConnect.Interfaces;
@@ -29,9 +30,10 @@ namespace QuantConnect.Algorithm.CSharp
     /// <meta name="tag" content="using data" />
     /// <meta name="tag" content="using quantconnect" />
     /// <meta name="tag" content="trading and orders" />
-    public class SnowflakeMeanReversionAlgorithm : QCAlgorithm, IRegressionAlgorithmDefinition
+    public class SnowflakeBitMEXMeanReversionAlgorithm : QCAlgorithm
     {
-        private readonly Symbol _spy = QuantConnect.Symbol.Create("SPY", SecurityType.Equity, Market.USA);
+        private const string BITMEX = "bitmex";
+        private readonly Symbol _xbtusd = QuantConnect.Symbol.Create("XBTUSD", SecurityType.Crypto, Market.GDAX);
         private RateOfChangeRatio _rateOfChangeRatio;
         private const string ENTRY = "ENTRY"; 
         private const string EXIT = "EXIT";
@@ -41,13 +43,17 @@ namespace QuantConnect.Algorithm.CSharp
 
         public override void Initialize()
         {
-            SetStartDate(2013, 10, 07);  //Set Start Date
-            SetEndDate(2013, 10, 11);    //Set End Date
-            SetCash(100000);             //Set Strategy Cash
+            //20180904
+            SetStartDate(2018, 9, 3);  //Set Start Date
+            SetEndDate(2018, 9, 4);    //Set End Date
+            SetCash(10000);
+            SetCash("XBT", 1m, 7300m);
             // Find more symbols here: http://quantconnect.com/data
-            AddEquity("SPY", Resolution.Second);
-            Securities["SPY"].FeeModel = new ConstantFeeTransactionModel((decimal) 0);
-            _rateOfChangeRatio = ROCR("SPY", 1, Resolution.Minute);
+            AddCrypto("XBTUSD", Resolution.Tick, Market.GDAX);
+            Securities["XBTUSD"].FeeModel = new ConstantFeeTransactionModel(0);
+            _rateOfChangeRatio = ROCR("XBTUSD", 1, Resolution.Minute);
+
+            SetBrokerageModel(BrokerageName.QuantConnectBrokerage);            
         }
 
         public override void OnData(Slice data)
@@ -55,7 +61,8 @@ namespace QuantConnect.Algorithm.CSharp
             if (Portfolio.Invested && _lastSignal.Type == ENTRY && (data.Time - _lastSignal.Time).Minutes > MINUTES)
             {
                 _lastSignal = new Signal{Time = data.Time, Type = EXIT};
-                SetHoldings(_spy, 0);    
+                SetHoldings(_xbtusd, 0);    
+                Debug("Sold");
                 return;
             }
 
@@ -63,38 +70,8 @@ namespace QuantConnect.Algorithm.CSharp
             var meanReversion = _rateOfChangeRatio.Current.Value - 1;
             if (Math.Abs(meanReversion) < MEAN_REVERSION_THRESHOLD) return;
             _lastSignal = new Signal{Time = data.Time, Type = ENTRY};
-            SetHoldings(_spy, -1 * Math.Sign(meanReversion));
+            SetHoldings(_xbtusd, -1 * Math.Sign(meanReversion));
+            Debug("Bought");
         }
-
-        public bool CanRunLocally { get; } = true;
-        public Language[] Languages { get; } = { Language.CSharp, Language.Python };
-        public Dictionary<string, string> ExpectedStatistics => new Dictionary<string, string>
-        {
-            {"Total Trades", "1"},
-            {"Average Win", "0%"},
-            {"Average Loss", "0%"},
-            {"Compounding Annual Return", "263.153%"},
-            {"Drawdown", "2.200%"},
-            {"Expectancy", "0"},
-            {"Net Profit", "1.663%"},
-            {"Sharpe Ratio", "4.41"},
-            {"Loss Rate", "0%"},
-            {"Win Rate", "0%"},
-            {"Profit-Loss Ratio", "0"},
-            {"Alpha", "0.007"},
-            {"Beta", "76.118"},
-            {"Annual Standard Deviation", "0.192"},
-            {"Annual Variance", "0.037"},
-            {"Information Ratio", "4.354"},
-            {"Tracking Error", "0.192"},
-            {"Treynor Ratio", "0.011"},
-            {"Total Fees", "$3.26"}
-        };
-    }
-    
-    internal class Signal
-    {
-        public DateTime Time { get; set; }
-        public string Type { get; set; }
     }
 }
