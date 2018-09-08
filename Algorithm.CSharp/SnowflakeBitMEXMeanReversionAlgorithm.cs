@@ -55,8 +55,8 @@ namespace QuantConnect.Algorithm.CSharp
         public override void Initialize()
         {
             //20180904
-            SetStartDate(2018, 9, 3);  //Set Start Date
-            SetEndDate(2018, 9, 4);    //Set End Date
+            SetStartDate(2018, 9, 5);  //Set Start Date
+            SetEndDate(2018, 9, 5);    //Set End Date
             SetCash(100000); 
 
             _xbtusd = AddCrypto("XBTUSD", Resolution.Tick, Market.GDAX);

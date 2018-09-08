@@ -6,8 +6,10 @@ let zlib = require('zlib')
 let archiver = require('archiver')
 var progress = require('stream-progressbar');
 let format = 'YYYYMMDD'
-let QUOTE = 'quote'
-let TRADE = 'trade'
+const QUOTE = 'quote'
+const TRADE = 'trade'
+const START_DATE = '2018-09-05'
+const END_DATE = '2018-09-06'
 
 let getUri = ({date, type}) => `https://s3-eu-west-1.amazonaws.com/public.bitmex.com/data/${type}/${date}.csv.gz` // 20180101
 let getPath = ({date, type}) => `./data/crypto/gdax/tick/xbtusd/${date}_${type}.zip`
@@ -24,8 +26,8 @@ if (!fs.existsSync('./data/crypto/gdax')) fs.mkdirSync('./data/crypto/gdax')
 if (!fs.existsSync('./data/crypto/gdax/tick')) fs.mkdirSync('./data/crypto/gdax/tick')
 if (!fs.existsSync('./data/crypto/gdax/tick/xbtusd')) fs.mkdirSync('./data/crypto/gdax/tick/xbtusd')
 
-let startDate = moment('2018-09-03').startOf('day')
-let endDate = moment('2018-09-04').startOf('day')
+let startDate = moment(START_DATE).startOf('day')
+let endDate = moment(END_DATE).add(-1, 'day').startOf('day')
 let date = startDate
 let dates = []
 while (date.valueOf() <= endDate.valueOf()) { dates.push(date.format(format)); date.add(1, 'd')}
