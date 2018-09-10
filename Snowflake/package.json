@@ -1,19 +1,24 @@
 {
-  "name": "lean",
-  "version": "1.0.0",
-  "main": "index.js",
-  "repository": "https://github.com/QuantConnect/Lean.git",
-  "author": "anback <anders.back@me.com>",
-  "license": "MIT",
+  "name": "snowflake",
+  "version": "0.1.0",
+  "private": true,
   "dependencies": {
     "archiver": "^3.0.0",
+    "babel-cli": "^6.26.0",
     "moment": "^2.22.2",
+    "react": "^16.5.0",
+    "react-dom": "^16.5.0",
+    "react-scripts": "1.1.5",
     "request": "^2.88.0",
     "request-promise": "^4.2.2",
     "stream-progressbar": "^1.1.1"
   },
   "scripts": {
-    "start": "node index.js",
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test --env=jsdom",
+    "eject": "react-scripts eject",
+    "download": "node index.js",
     "teardown": "sudo rm -r Data/crypto/bitmex"
   }
 }
