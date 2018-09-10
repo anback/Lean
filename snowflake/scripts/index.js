@@ -16,11 +16,11 @@ let getPath = ({date, type}) => `./data/crypto/gdax/tick/xbtusd/${date}_${type}.
 
 // input: 2018-09-01D04:03:41.128828000,XBTUSD,585783,7063.5,7064,142932
 let mapQuote = ([timestamp, symbol, bidSize, bidPrice, askPrice, askSize]) =>
-  [moment(timestamp).valueOf() - moment(timestamp).startOf('day').valueOf(), bidPrice, bidSize, askPrice, askSize].join(',')
+  [moment(timestamp).valueOf() - moment(timestamp).startOf('day').valueOf(), bidPrice, bidSize, askPrice, askSize]
 
 // input: 2018-01-22D00:00:02.364320000,XBTUSD,Sell,20,11559.5,MinusTick,046e0b31-267d-007b-179e-aa8e8fd31c69,173020,0.0017302,20
 let mapTrade = ([timestamp, symbol, side, amount, price, tickType, matchId, numb1, numb2]) =>
-  [moment(timestamp).valueOf() - moment(timestamp).startOf('day').valueOf(), price, amount].join(',')
+  [moment(timestamp).valueOf() - moment(timestamp).startOf('day').valueOf(), price, amount]
 
 if (!fs.existsSync('./data/crypto/gdax')) fs.mkdirSync('./data/crypto/gdax')
 if (!fs.existsSync('./data/crypto/gdax/tick')) fs.mkdirSync('./data/crypto/gdax/tick')
@@ -42,8 +42,8 @@ let createTransform = (options) => new Transform({
           let data = row.split(',')
           if(data[1] !== 'XBTUSD') return
           data[0] = data[0].replace('D', 'T')
-          if(type === TRADE) return mapTrade(data, options)
-          if(type === QUOTE) return mapQuote(data, options)
+          if(type === TRADE) return mapTrade(data, options).join(',')
+          if(type === QUOTE) return mapQuote(data, options).join(',')
         })
         .filter(r => !!r)
 
