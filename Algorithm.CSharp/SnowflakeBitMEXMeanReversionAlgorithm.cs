@@ -76,11 +76,7 @@ namespace QuantConnect.Algorithm.CSharp
             if (tick.AskPrice == 0) return;
             var quote = new Quote {Time = data.Time, MidPrice = GetMidPrice(tick)};
             _quotes.Add(quote);
-            _quotes.RemoveAll(q =>
-            {
-                
-                return (data.Time - q.Time).TotalMinutes > MINUTES;
-            });
+            _quotes.RemoveAll(q => (data.Time - q.Time).TotalMinutes > MINUTES);
             if (_quotes.IsNullOrEmpty()) return;
             var firstQuote = _quotes.First();
             var rateOfChange = quote.MidPrice / firstQuote.MidPrice;
@@ -90,7 +86,7 @@ namespace QuantConnect.Algorithm.CSharp
             {
                 // Debug($"Closed {data.Time} _lastSignal.Time {_lastSignal.Time}");
                 _lastSignal = new Signal{Time = data.Time, Type = EXIT};
-                SetHoldings(_xbtusd.Symbol, 0);    
+                SetHoldings(_xbtusd.Symbol, 0);
                 return;
             }
 
@@ -104,6 +100,11 @@ namespace QuantConnect.Algorithm.CSharp
 
             var side = -1 * Math.Sign(meanReversion) == 1 ? "Bought" : "Sold";
             Debug($"{side} {data.Time} meanReversion {meanReversion} quote: {quote.Time} {quote.MidPrice} firstQuote: {firstQuote.Time} {firstQuote.MidPrice}");
+        }
+
+        public override void OnEndOfAlgorithm()
+        {
+            // Portfolio.Transactions.TransactionRecord
         }
 
         static decimal GetMidPrice(Tick tick) => (tick.AskPrice + tick.BidPrice) / 2;
