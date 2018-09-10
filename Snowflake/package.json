@@ -4,7 +4,6 @@
   "private": true,
   "dependencies": {
     "archiver": "^3.0.0",
-    "babel-cli": "^6.26.0",
     "moment": "^2.22.2",
     "react": "^16.5.0",
     "react-dom": "^16.5.0",
@@ -13,12 +12,16 @@
     "request-promise": "^4.2.2",
     "stream-progressbar": "^1.1.1"
   },
+  "devDependencies": {
+    "babel-cli": "^6.0.0"
+  },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom",
     "eject": "react-scripts eject",
     "download": "node index.js",
-    "teardown": "sudo rm -r Data/crypto/bitmex"
+    "teardown": "sudo rm -r Data/crypto/bitmex",
+    "babel": "babel scripts -d dest"
   }
 }
