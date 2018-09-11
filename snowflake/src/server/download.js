@@ -52,23 +52,27 @@ let date = startDate
 let dates = []
 while (date.valueOf() <= endDate.valueOf()) { dates.push(date.format(format)); date.add(1, 'd')}
 
+let prefix = ''
 let createTransform = (options) => new Transform({
     transform: function transformer(chunk, encoding, callback) {
         let {type} = options
-        let rows = chunk.toString('utf8').split('\n')
+        let text = chunk.toString('utf8')
+        text = prefix + text
+        let rows = text.split('\n')
+        prefix = rows.pop()
 
         rows =
         rows.map(row => {
           let data = row.split(',')
           if(data[1] !== 'XBTUSD') return
           data[0] = data[0].replace('D', 'T')
-          if(type === TRADE) return mapTrade(data).join(',')
-          if(type === QUOTE) return mapQuote(data).join(',')
+          if(type === TRADE) return mapTrade(data)
+          if(type === QUOTE) return mapQuote(data)
         })
         .filter(r => !!r)
 
         if(type === TRADE) rows.forEach(trade => resolutions.forEach(({aggregator}) => aggregator.onNewTrade(trade)))
-        this.push(rows.join('\n'))
+        this.push(rows.map(row => row.join(',')).join('\n'))
         callback()
     }
   });
@@ -91,7 +95,6 @@ let createTransform = (options) => new Transform({
     archive.finalize();
 
     output.on('close', () => resolutions.forEach(({resolution, aggregator}) => {
-      console.log('klmdfgklmdfklmdfklmödfdfklm,ö')
       let path = getPath({date, type, resolution})
       var archive = archiver('zip',   {zlib: { level: 9 } });
       let text = aggregator.getBars().map(bar => bar.join(',')).join('\n')

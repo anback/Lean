@@ -13,8 +13,19 @@ export default class {
   constructor(resolution: number) { this.resolution = resolution }
 
   onNewTrade = ([time, price, volume]: Array<number>) => {
-    let key = this.getKey(moment(time).valueOf())
+
+    if(!time) return
+    if(!price) return
+    if(!volume) return
+    if(volume === '') return
+    if(price === '') return
+    if(time === '') return
+
+    let key = this.getKey(time)
     let bar = this.bars[key] || {time: 0, open: undefined, high: 0, low: SOMETHING_HIGH, close: undefined, volume: 0}
+
+    price = parseFloat(price)
+    volume = parseFloat(volume)
 
     bar.time = key
     bar.open = bar.open || price
@@ -23,10 +34,13 @@ export default class {
     bar.close = price
     bar.volume +=  volume
 
+    if(!bar.open) console.log(price, volume)
+    if(!bar.close) console.log(price, volume)
+
     this.bars[key] = bar
   }
 
   getKey = (time: number):number => Math.floor(time / this.resolution) * this.resolution
 
-  getBars = (): Array<Array<number>> => Object.keys(this.bars).map(key => this.bars[key]).filter(b => !!b).map(bar => [bar.time, bar.open, bar.high, bar.low, bar.close, bar.volume])
+  getBars = (): Array<Array<number>> => Object.keys(this.bars).map(key => this.bars[key]).map(bar => [bar.time, bar.open, bar.high, bar.low, bar.close, bar.volume])
 }
