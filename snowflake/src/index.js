@@ -3,6 +3,7 @@ import React from 'react';
 import { render } from 'react-dom';
 import Chart from './Chart';
 import { getData } from "./utils"
+import './jszip.js'
 
 import { TypeChooser } from "react-stockcharts/lib/helper";
 
