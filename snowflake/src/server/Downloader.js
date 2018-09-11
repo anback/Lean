@@ -7,7 +7,7 @@ import zlib from 'zlib'
 import archiver from 'archiver'
 import progress from 'stream-progressbar'
 import TradeAggregator from './TradeAggregator'
-import {ONE_SECOND, ONE_MINUTE, ONE_HOUR, ONE_DAY} from '../Consts'
+import {ONE_SECOND, ONE_MINUTE, ONE_HOUR, ONE_DAY} from './Consts'
 
 const resolutions = [
   {resolution: 'second', aggregator: new TradeAggregator(ONE_SECOND)},
