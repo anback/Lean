@@ -14,4 +14,15 @@ export let getDataForDate = (date: string) =>
   }))
   .then(data => data.files[`${date}.csv`].async("text"))
   .then(text => text.split('\n').map(line => line.split(',').reduce((a,b, i) => ({...a, [COLUMN_NAMES[i]] : parseFloat(b)}), {})))
-  .then((rows) => rows.map(row => ({...row, date: moment(moment(date).valueOf() + row.time).toDate()})))
+  .then((rows) => rows.map(({time, open, high, low, close, volume}) => ({
+    close,
+    date: moment(moment(date).valueOf() + time).toDate(),
+    high,
+    low,
+    open,
+    absoluteChange: null,
+    dividend: '',
+    percentChange: undefined,
+    split: '',
+    volume
+  })))

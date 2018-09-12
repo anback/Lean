@@ -1,9 +1,8 @@
-
 import React from "react";
 import PropTypes from "prop-types";
 
 import { scaleTime } from "d3-scale";
-import { utcDay } from "d3-time";
+import { utcMinute } from "d3-time";
 
 import { ChartCanvas, Chart } from "react-stockcharts";
 import { CandlestickSeries } from "react-stockcharts/lib/series";
@@ -34,7 +33,7 @@ class CandleStickChart extends React.Component {
 				<Chart id={1} yExtents={d => [d.high, d.low]}>
 					<XAxis axisAt="bottom" orient="bottom" ticks={6}/>
 					<YAxis axisAt="left" orient="left" ticks={5} />
-					<CandlestickSeries width={timeIntervalBarWidth(utcDay)}/>
+					<CandlestickSeries width={timeIntervalBarWidth(utcMinute)}/>
 				</Chart>
 			</ChartCanvas>
 		);

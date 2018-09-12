@@ -5,14 +5,9 @@ import Chart from './Chart';
 import { getData } from "./utils"
 import {getDataForDate} from './XBTUSDDataRepository'
 
-getDataForDate("20180907").then(console.log)
-
 class ChartComponent extends React.Component<{}, {data: Object}> {
 	componentDidMount() {
-		getData().then(data => {
-			console.log(data)
-			this.setState({ data })
-		})
+		getDataForDate("20180907").then(data => { console.log(data); this.setState({ data })})
 	}
 	render() {
 		if (this.state == null) {
