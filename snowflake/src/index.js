@@ -1,15 +1,18 @@
-
+//@flow
 import React from 'react';
 import { render } from 'react-dom';
 import Chart from './Chart';
 import { getData } from "./utils"
-import './jszip.js'
+import {getDataForDate} from './XBTUSDDataRepository'
 
-import { TypeChooser } from "react-stockcharts/lib/helper";
+getDataForDate("20180907").then(console.log)
 
-class ChartComponent extends React.Component {
+class ChartComponent extends React.Component<{}, {data: Object}> {
 	componentDidMount() {
-		getData().then(data => this.setState({ data }))
+		getData().then(data => {
+			console.log(data)
+			this.setState({ data })
+		})
 	}
 	render() {
 		if (this.state == null) {
@@ -19,7 +22,5 @@ class ChartComponent extends React.Component {
 	}
 }
 
-render(
-	<ChartComponent />,
-	document.getElementById("root")
-);
+//$FlowFixMe
+render(<ChartComponent />, document.getElementById("root"));

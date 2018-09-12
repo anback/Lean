@@ -7,5 +7,9 @@
 [lints]
 
 [options]
+suppress_type=$FlowIssue
+suppress_type=$FuckFlow
+suppress_type=$FlowFixMe
+suppress_type=$FixMe
 
 [strict]
