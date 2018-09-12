@@ -52,14 +52,14 @@ let date = startDate
 let dates = []
 while (date.valueOf() <= endDate.valueOf()) { dates.push(date.format(format)); date.add(1, 'd')}
 
-let prefix = ''
+let prefixes = {[TRADE]: '', [QUOTE]: ''}
 let createTransform = (options) => new Transform({
     transform: function transformer(chunk, encoding, callback) {
         let {type} = options
         let text = chunk.toString('utf8')
-        text = prefix + text
+        text = prefixes[options.type] + text
         let rows = text.split('\n')
-        prefix = rows.pop()
+        prefixes[options.type] = rows.pop()
 
         rows =
         rows.map(row => {
@@ -77,7 +77,7 @@ let createTransform = (options) => new Transform({
     }
   });
 
-[TRADE].forEach(type =>
+[TRADE, QUOTE].forEach(type =>
   dates
   .filter(date => !fs.existsSync(getPath({date, type, resolution: TICK})))
   .map(date => {
@@ -94,6 +94,7 @@ let createTransform = (options) => new Transform({
     archive.append(stream, { name: `${date}.csv` })
     archive.finalize();
 
+    if(type === QUOTE) return
     output.on('close', () => resolutions.forEach(({resolution, aggregator}) => {
       let path = getPath({date, type, resolution})
       var archive = archiver('zip',   {zlib: { level: 9 } });

@@ -263,3 +263,5 @@ Launcher/Plugins/*
 .idea
 *.pem
 .DS_Store
+
+snowflake/public/backtest.json

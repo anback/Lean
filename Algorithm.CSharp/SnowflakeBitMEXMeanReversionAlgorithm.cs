@@ -16,6 +16,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
 using QuantConnect.Brokerages;
 using QuantConnect.Data;
 using QuantConnect.Data.Fundamental;
@@ -55,8 +56,8 @@ namespace QuantConnect.Algorithm.CSharp
         public override void Initialize()
         {
             //20180904
-            SetStartDate(2018, 9, 5);  //Set Start Date
-            SetEndDate(2018, 9, 5);    //Set End Date
+            SetStartDate(2018, 9, 7);  //Set Start Date
+            SetEndDate(2018, 9, 7);    //Set End Date
             SetCash(100000); 
 
             _xbtusd = AddCrypto("XBTUSD", Resolution.Tick, Market.GDAX);
@@ -104,7 +105,8 @@ namespace QuantConnect.Algorithm.CSharp
 
         public override void OnEndOfAlgorithm()
         {
-            // Portfolio.Transactions.TransactionRecord
+            var json = JsonConvert.SerializeObject(Portfolio.Transactions.TransactionRecord.ToArray());
+            System.IO.File.WriteAllText(@"../../../snowflake/public/backtest.json", json);
         }
 
         static decimal GetMidPrice(Tick tick) => (tick.AskPrice + tick.BidPrice) / 2;
