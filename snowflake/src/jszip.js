@@ -3,7 +3,7 @@ import JSZip from 'jszip'
 import JSZipUtils from 'jszip-utils'
 
 new JSZip.external.Promise(function (resolve, reject) {
-    JSZipUtils.getBinaryContent('/minute/xbtusd/20180907_trade.zip', function(err, data) {
+    JSZipUtils.getBinaryContent('http://localhost:9000/minute/xbtusd/20180907_trade.zip', function(err, data) {
         if (err) {
             reject(err);
         } else {
