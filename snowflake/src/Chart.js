@@ -1,4 +1,4 @@
-
+//@flow
 import React from "react";
 import PropTypes from "prop-types";
 
@@ -97,8 +97,7 @@ class CandleStickChartWithZoomPan extends React.Component {
 				xScale={xScale}
 				xExtents={xExtents}
 				xAccessor={xAccessor}
-				displayXAccessor={displayXAccessor}
-			>
+				displayXAccessor={displayXAccessor}>
 
 				<Chart id={1}
 					yExtents={d => [d.high, d.low]}
@@ -119,19 +118,21 @@ class CandleStickChartWithZoomPan extends React.Component {
 				<Chart id={2} yExtents={d => d.volume} height={150} origin={(w, h) => [0, h - 300]}>
 					<YAxis axisAt="left" orient="left" ticks={5} tickFormat={format(".2s")} zoomEnabled={zoomEvent} />
 
-					<MouseCoordinateX at="bottom" orient="bottom" displayFormat={timeFormat("%Y-%m-%d")} />
 					<MouseCoordinateY at="left" orient="left" displayFormat={format(".4s")} />
 
 					<BarSeries yAccessor={d => d.volume} fill={(d) => d.close > d.open ? "#6BA583" : "#FF0000"} />
 				</Chart>
-				<Chart id={3} yExtents={d => d.volume / 10} height={150} origin={(w, h) => [0, h - 150]}>
+				<Chart id={3} yExtents={(d: DataRow) => Math.sign(Math.random() - 0.5) * 200} height={150} origin={(w, h) => [0, h - 150]}>
 					<XAxis axisAt="bottom" orient="bottom" zoomEnabled={zoomEvent} {...xGrid} />
 					<YAxis axisAt="left" orient="left" ticks={5} tickFormat={format(".2s")} zoomEnabled={zoomEvent} />
 
-					<MouseCoordinateX at="bottom" orient="bottom" displayFormat={timeFormat("%Y-%m-%d")} />
+					<MouseCoordinateX at="bottom" orient="bottom" displayFormat={timeFormat("%Y-%m-%d %H:%M:%S")} />
 					<MouseCoordinateY at="left" orient="left" displayFormat={format(".4s")} />
 
-					<BarSeries yAccessor={d => d.volume / 10} fill={(d) => d.close > d.open ? "#6BA583" : "#FF0000"} />
+					<BarSeries
+						yAccessor={d => d.backtestValue}
+						fill={(d) => d.backtestValue > 0 ? "#6BA583" : "#FF0000"}
+						baseAt={(xScale, yScale, d) => yScale(0)} />
 				</Chart>
 				<CrossHairCursor />
 			</ChartCanvas>
