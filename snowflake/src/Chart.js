@@ -69,7 +69,7 @@ class CandleStickChartWithZoomPan extends React.Component {
 
 		const margin = { left: 70, right: 70, top: 20, bottom: 30 };
 
-		const height = 400;
+		const height = 720;
 
 		const gridHeight = height - margin.top - margin.bottom;
 		const gridWidth = width - margin.left - margin.right;
@@ -79,7 +79,9 @@ class CandleStickChartWithZoomPan extends React.Component {
 		const xGrid = showGrid ? { innerTickSize: -1 * gridHeight, tickStrokeOpacity: 0.2 } : {};
 
 		return (
-			<ChartCanvas ref={this.saveNode} height={height}
+			<ChartCanvas
+				ref={this.saveNode}
+				height={height}
 				ratio={ratio}
 				width={width}
 				margin={{ left: 70, right: 70, top: 10, bottom: 30 }}
@@ -100,17 +102,9 @@ class CandleStickChartWithZoomPan extends React.Component {
 
 				<Chart id={1}
 					yExtents={d => [d.high, d.low]}
+					height={400}
 				>
-					<XAxis axisAt="bottom"
-						orient="bottom"
-						zoomEnabled={zoomEvent}
-						{...xGrid} />
-					<YAxis axisAt="right"
-						orient="right"
-						ticks={5}
-						zoomEnabled={zoomEvent}
-						{...yGrid}
-					/>
+					<YAxis axisAt="right" orient="right" ticks={5} zoomEnabled={zoomEvent} {...yGrid} />
 
 					<MouseCoordinateY
 						at="right"
@@ -123,26 +117,20 @@ class CandleStickChartWithZoomPan extends React.Component {
 						onReset={this.handleReset}
 					/>
 				</Chart>
-				<Chart id={2}
-					yExtents={d => d.volume}
-					height={150} origin={(w, h) => [0, h - 150]}
-				>
-					<YAxis
-						axisAt="left"
-						orient="left"
-						ticks={5}
-						tickFormat={format(".2s")}
-						zoomEnabled={zoomEvent}
-					/>
+				<Chart id={2} yExtents={d => d.volume} height={150} origin={(w, h) => [0, h - 300]}>
+					<YAxis axisAt="left" orient="left" ticks={5} tickFormat={format(".2s")} zoomEnabled={zoomEvent} />
 
-					<MouseCoordinateX
-						at="bottom"
-						orient="bottom"
-						displayFormat={timeFormat("%Y-%m-%d")} />
-					<MouseCoordinateY
-						at="left"
-						orient="left"
-						displayFormat={format(".4s")} />
+					<MouseCoordinateX at="bottom" orient="bottom" displayFormat={timeFormat("%Y-%m-%d")} />
+					<MouseCoordinateY at="left" orient="left" displayFormat={format(".4s")} />
+
+					<BarSeries yAccessor={d => d.volume} fill={(d) => d.close > d.open ? "#6BA583" : "#FF0000"} />
+				</Chart>
+				<Chart id={3} yExtents={d => d.volume} height={150} origin={(w, h) => [0, h - 150]}>
+					<XAxis axisAt="bottom" orient="bottom" zoomEnabled={zoomEvent} {...xGrid} />
+					<YAxis axisAt="left" orient="left" ticks={5} tickFormat={format(".2s")} zoomEnabled={zoomEvent} />
+
+					<MouseCoordinateX at="bottom" orient="bottom" displayFormat={timeFormat("%Y-%m-%d")} />
+					<MouseCoordinateY at="left" orient="left" displayFormat={format(".4s")} />
 
 					<BarSeries yAccessor={d => d.volume} fill={(d) => d.close > d.open ? "#6BA583" : "#FF0000"} />
 				</Chart>
