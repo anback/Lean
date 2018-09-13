@@ -15,7 +15,7 @@ let getData = (): Promise<Array<DataRow>> =>
     tradeBars.forEach(tradeBar => {
       let tradeBarTimetamp = moment(tradeBar.date).valueOf()
       let backtestDataPoint = backtestDataPoints.find(backtestDataPoint => {
-        let backtestDatapointTimetamp = Math.round(moment(backtestDataPoint.Key).valueOf() / ONE_MINUTE) * ONE_MINUTE
+        let backtestDatapointTimetamp = Math.round(moment(backtestDataPoint.Key.replace('Z', '')).valueOf() / ONE_MINUTE) * ONE_MINUTE
         return moment(tradeBar.date).valueOf() === backtestDatapointTimetamp
       })
 
