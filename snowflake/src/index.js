@@ -2,12 +2,11 @@
 import React from 'react';
 import { render } from 'react-dom';
 import Chart from './Chart';
-import { getData } from "./utils"
-import {getDataForDate} from './XBTUSDDataRepository'
+import getData from './getData'
 
 class ChartComponent extends React.Component<{}, {data: Object}> {
 	componentDidMount() {
-		getDataForDate("20180907").then(data => { console.log(data); this.setState({ data })})
+		getData().then(data => { console.log('data[0]', data[0]); this.setState({ data })})
 	}
 	render() {
 		if (this.state == null) {

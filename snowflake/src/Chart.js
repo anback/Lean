@@ -102,8 +102,7 @@ class CandleStickChartWithZoomPan extends React.Component {
 
 				<Chart id={1}
 					yExtents={d => [d.high, d.low]}
-					height={400}
-				>
+					height={400}>
 					<YAxis axisAt="right" orient="right" ticks={5} zoomEnabled={zoomEvent} {...yGrid} />
 
 					<MouseCoordinateY
@@ -125,14 +124,14 @@ class CandleStickChartWithZoomPan extends React.Component {
 
 					<BarSeries yAccessor={d => d.volume} fill={(d) => d.close > d.open ? "#6BA583" : "#FF0000"} />
 				</Chart>
-				<Chart id={3} yExtents={d => d.volume} height={150} origin={(w, h) => [0, h - 150]}>
+				<Chart id={3} yExtents={d => d.volume / 10} height={150} origin={(w, h) => [0, h - 150]}>
 					<XAxis axisAt="bottom" orient="bottom" zoomEnabled={zoomEvent} {...xGrid} />
 					<YAxis axisAt="left" orient="left" ticks={5} tickFormat={format(".2s")} zoomEnabled={zoomEvent} />
 
 					<MouseCoordinateX at="bottom" orient="bottom" displayFormat={timeFormat("%Y-%m-%d")} />
 					<MouseCoordinateY at="left" orient="left" displayFormat={format(".4s")} />
 
-					<BarSeries yAccessor={d => d.volume} fill={(d) => d.close > d.open ? "#6BA583" : "#FF0000"} />
+					<BarSeries yAccessor={d => d.volume / 10} fill={(d) => d.close > d.open ? "#6BA583" : "#FF0000"} />
 				</Chart>
 				<CrossHairCursor />
 			</ChartCanvas>

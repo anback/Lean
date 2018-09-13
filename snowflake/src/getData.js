@@ -6,7 +6,7 @@ import moment from 'moment'
 const COLUMN_NAMES = ['time', 'open', 'high', 'low', 'close', 'volume']
 const getPath = date => `http://localhost:9000/minute/xbtusd/${date}_trade.zip`
 
-export let getDataForDate = (date: string) =>
+export let getDataForDate = (date: string = "20180907") =>
   new JSZip.external.Promise((resolve, reject) =>
     JSZipUtils.getBinaryContent(getPath(date), (err, data) => {
         if (err) return reject(err)
@@ -26,3 +26,5 @@ export let getDataForDate = (date: string) =>
     split: '',
     volume
   })))
+
+export default getDataForDate
