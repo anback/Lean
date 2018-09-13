@@ -4,9 +4,9 @@ import { render } from 'react-dom';
 import Chart from './Chart';
 import getData from './getData'
 
-class ChartComponent extends React.Component<{}, {data: Object}> {
+class ChartComponent extends React.Component<{}, {data: Array<DataRow>}> {
 	componentDidMount() {
-		getData().then(data => { console.log('data[0]', data[0]); this.setState({ data })})
+		getData().then(data => this.setState({data}))
 	}
 	render() {
 		if (this.state == null) {

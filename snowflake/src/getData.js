@@ -8,10 +8,16 @@ const BASE_URL = 'http://localhost:9000'
 const COLUMN_NAMES = ['time', 'open', 'high', 'low', 'close', 'volume']
 const getTradeDataUrl = (date: string) => `${BASE_URL}/minute/xbtusd/${date}_trade.zip`
 const getBacktestResultsUrl = () => `${BASE_URL}/backtest.json`
+const FORMAT = 'YYYYMMDD'
 
 let getData = (): Promise<Array<DataRow>> =>
-  Promise.all([getDataForDate(), fetch(getBacktestResultsUrl()).then(res => res.json())])
-  .then(([tradeBars, backtestDataPoints]) => {
+  fetch(getBacktestResultsUrl()).then(res => res.json())
+  .then(backtestDataPoints => {
+    let from = moment(Math.min(backtestDataPoints.map(moment)))
+    let to = moment(Math.max(backtestDataPoints.map(moment)))
+    return getTradeBars(from, to).then((tradeBars) => ({tradeBars, backtestDataPoints}))
+  })
+  .then(({tradeBars, backtestDataPoints}) => {
     tradeBars.forEach(tradeBar => {
       let tradeBarTimetamp = moment(tradeBar.date).valueOf()
       let backtestDataPoint = backtestDataPoints.find(backtestDataPoint => {
@@ -25,7 +31,13 @@ let getData = (): Promise<Array<DataRow>> =>
     return tradeBars
   })
 
-let getDataForDate = (date: string = "20180907") =>
+let getTradeBars = (from: string, to: string) => {
+  let dates = []
+  for (let date = moment(from); date.valueOf() < moment(to).valueOf(); date = date.add(1, 'd')) dates.push(date.format(FORMAT))
+  return Promise.all(dates.map(getTradeBarsForDate)).then(array => array.reduce((a,b) => a.concat(b), []))
+}
+
+let getTradeBarsForDate = (date: string) =>
   new JSZip.external.Promise((resolve, reject) =>
     JSZipUtils.getBinaryContent(getTradeDataUrl(date), (err, data) => {
         if (err) return reject(err)
