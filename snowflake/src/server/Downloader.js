@@ -51,7 +51,7 @@ if (!fs.existsSync('../data/crypto/gdax/daily/xbtusd')) fs.mkdirSync('../data/cr
 
 let {argv} = process
 
-let startDate = '20180801'
+let startDate = '20180901'
 let endDate = moment().add(-1, 'day').startOf('day').format(FORMAT)
 
 if(argv.length === 3) {startDate = argv[2]}
