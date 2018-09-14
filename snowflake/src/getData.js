@@ -13,8 +13,8 @@ const FORMAT = 'YYYYMMDD'
 let getData = (): Promise<Array<DataRow>> =>
   fetch(getBacktestResultsUrl()).then(res => res.json())
   .then(backtestDataPoints => {
-    let from = moment(Math.min(backtestDataPoints.map(moment)))
-    let to = moment(Math.max(backtestDataPoints.map(moment)))
+    let from = moment(Math.min(...backtestDataPoints.map(({Key}) => moment(Key).valueOf()))).format(FORMAT)
+    let to = moment(Math.max(...backtestDataPoints.map(({Key}) => moment(Key).valueOf()))).format(FORMAT)
     return getTradeBars(from, to).then((tradeBars) => ({tradeBars, backtestDataPoints}))
   })
   .then(({tradeBars, backtestDataPoints}) => {
@@ -33,8 +33,10 @@ let getData = (): Promise<Array<DataRow>> =>
 
 let getTradeBars = (from: string, to: string) => {
   let dates = []
-  for (let date = moment(from); date.valueOf() < moment(to).valueOf(); date = date.add(1, 'd')) dates.push(date.format(FORMAT))
-  return Promise.all(dates.map(getTradeBarsForDate)).then(array => array.reduce((a,b) => a.concat(b), []))
+  for (let date = moment(from); date.valueOf() <= moment(to).valueOf(); date = date.add(1, 'd')) dates.push(date.format(FORMAT))
+  return Promise.all(dates.map(getTradeBarsForDate)).then(array => {
+    return array.reduce((a,b) => a.concat(b), [])
+  })
 }
 
 let getTradeBarsForDate = (date: string) =>
@@ -57,5 +59,8 @@ let getTradeBarsForDate = (date: string) =>
     split: '',
     volume
   })))
+
+
+// export let getMinDate = (dates: Array<string>) => moment(Math.min(dates.map(date => moment(date).valueOf()))).format(FORMAT)
 
 export default getData

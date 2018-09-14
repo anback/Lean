@@ -16,15 +16,18 @@ const resolutions = [
   {resolution: 'daily', aggregator: new TradeAggregator(ONE_DAY)}
 ]
 
-let format = 'YYYYMMDD'
+const FORMAT = 'YYYYMMDD'
 const QUOTE = 'quote'
 const TRADE = 'trade'
 const TICK = 'tick'
-const START_DATE = '2018-09-07'
-const END_DATE = '2018-09-08'
 
 let getUri = ({date, type}) => `https://s3-eu-west-1.amazonaws.com/public.bitmex.com/data/${type}/${date}.csv.gz` // 20180101
 let getPath = ({date, type, resolution}) => `../data/crypto/gdax/${resolution}/xbtusd/${date}_${type}.zip`
+let onError = (e, options: Object) => {
+  let path = getPath(options)
+  if(fs.existsSync(path)) fs.unlinkSync(path)
+  console.error(e)
+}
 
 // input: 2018-09-01D04:03:41.128828000,XBTUSD,585783,7063.5,7064,142932
 let mapQuote = ([timestamp, symbol, bidSize, bidPrice, askPrice, askSize]) =>
@@ -46,20 +49,34 @@ if (!fs.existsSync('../data/crypto/gdax/hour/xbtusd')) fs.mkdirSync('../data/cry
 if (!fs.existsSync('../data/crypto/gdax/daily')) fs.mkdirSync('../data/crypto/gdax/daily')
 if (!fs.existsSync('../data/crypto/gdax/daily/xbtusd')) fs.mkdirSync('../data/crypto/gdax/daily/xbtusd')
 
-let startDate = moment(START_DATE).startOf('day')
-let endDate = moment(END_DATE).add(-1, 'day').startOf('day')
-let date = startDate
-let dates = []
-while (date.valueOf() <= endDate.valueOf()) { dates.push(date.format(format)); date.add(1, 'd')}
+let {argv} = process
 
-let prefixes = {[TRADE]: '', [QUOTE]: ''}
+let startDate = '20180801'
+let endDate = moment().add(-1, 'day').startOf('day').format(FORMAT)
+
+if(argv.length === 3) {startDate = argv[2]}
+if(argv.length === 4) {startDate = argv[2]; endDate = argv[3]}
+
+let date = moment(startDate)
+let dates = []
+
+while (date.valueOf() <= moment(endDate).valueOf()) { dates.push(date.format(FORMAT)); date.add(1, 'd')}
+
+process.on('SIGINT', e => {
+  [TRADE, QUOTE].forEach(type => dates.forEach(date => [...resolutions, {resolution: TICK}].forEach(({resolution}) => {
+    try { fs.unlinkSync(getPath({type, date, resolution})) } catch (e) {}
+  })))
+  process.exit(1)
+})
+
+let prefixes = {[TRADE]: {}, [QUOTE]: {}}
 let createTransform = (options) => new Transform({
     transform: function transformer(chunk, encoding, callback) {
-        let {type} = options
+        let {type, date} = options
         let text = chunk.toString('utf8')
-        text = prefixes[options.type] + text
+        text = (prefixes[options.type][date] || '') + text
         let rows = text.split('\n')
-        prefixes[options.type] = rows.pop()
+        prefixes[options.type][date] = rows.pop()
 
         rows =
         rows.map(row => {
@@ -71,7 +88,7 @@ let createTransform = (options) => new Transform({
         })
         .filter(r => !!r)
 
-        if(type === TRADE) rows.forEach(trade => resolutions.forEach(({aggregator}) => aggregator.onNewTrade(trade)))
+        if(type === TRADE) rows.forEach(trade => resolutions.forEach(({aggregator}) => aggregator.onNewTrade(trade, options)))
         this.push(rows.map(row => row.join(',')).join('\n'))
         callback()
     }
@@ -81,9 +98,14 @@ let createTransform = (options) => new Transform({
   dates
   .filter(date => !fs.existsSync(getPath({date, type, resolution: TICK})))
   .map(date => {
+    let options = {date, type, resolution: TICK}
     let path = getPath({date, type, resolution: TICK})
+
     let stream =
-    request(getUri({date, type}))
+    request(getUri({date, type}), (error, response) => {
+      if(error) return onError(options, error)
+      if(response.statusCode !== 200) return onError(options, new Error(JSON.stringify(response)))
+    })
     .pipe(progress(`${path} [:bar] :rate/bps :percent :etas`))
     .pipe(zlib.createGunzip())
     .pipe(createTransform({date, type}))
@@ -92,15 +114,19 @@ let createTransform = (options) => new Transform({
     let output = fs.createWriteStream(path)
     archive.pipe(output)
     archive.append(stream, { name: `${date}.csv` })
-    archive.finalize();
+    archive.finalize()
 
     if(type === QUOTE) return
+
     output.on('close', () => resolutions.forEach(({resolution, aggregator}) => {
       let path = getPath({date, type, resolution})
       var archive = archiver('zip',   {zlib: { level: 9 } });
       let text = aggregator.getBars().map(bar => bar.join(',')).join('\n')
       archive.pipe(fs.createWriteStream(path))
       archive.append(text, { name: `${date}.csv` })
-      archive.finalize();
+      archive.finalize()
     }))
+
+    output.on('error', e => onError(e, options))
+    stream.on('error', e => onError(e, options))
   }))

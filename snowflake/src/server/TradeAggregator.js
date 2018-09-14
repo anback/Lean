@@ -12,7 +12,7 @@ export default class {
   bars = {}
   constructor(resolution: number) { this.resolution = resolution }
 
-  onNewTrade = ([time, price, volume]: Array<number>) => {
+  onNewTrade = ([time, price, volume]: Array<number>, {type, date}: Object) => {
 
     if(!time) return
     if(!price) return
@@ -34,8 +34,8 @@ export default class {
     bar.close = price
     bar.volume +=  volume
 
-    if(!bar.open) console.log(price, volume)
-    if(!bar.close) console.log(price, volume)
+    if(!bar.open) console.log(price, volume, date, type)
+    if(!bar.close) console.log(price, volume, date, type)
 
     this.bars[key] = bar
   }
