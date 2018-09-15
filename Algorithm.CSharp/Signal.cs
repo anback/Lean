@@ -6,5 +6,7 @@ using System;
      {
          public DateTime Time { get; set; }
          public string Type { get; set; }
+
+         public double GetTotalMinutes(DateTime time) { return (time - Time).TotalMinutes; }
      }
  }

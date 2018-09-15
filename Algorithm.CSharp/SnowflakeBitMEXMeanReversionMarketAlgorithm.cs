@@ -112,12 +112,12 @@ namespace QuantConnect.Algorithm.CSharp
         }
 
         static decimal GetMidPrice(Tick tick) => (tick.AskPrice + tick.BidPrice) / 2;
-    }
 
-    internal class Quote
-    {
-        public DateTime Time { get; set; }
-        public decimal MidPrice { get; set; }
+        private class Quote
+        {
+            public DateTime Time { get; set; }
+            public decimal MidPrice { get; set; }
+        }
     }
 }
 
