@@ -56,7 +56,7 @@ namespace QuantConnect.Algorithm.CSharp
         public override void Initialize()
         {
             //20180904
-            startDate = new DateTime(2018, 9, 13);
+            startDate = new DateTime(2018, 9, 10);
             endDate = new DateTime(2018, 9, 13);
             SetStartDate(startDate);  //Set Start Date
             SetEndDate(endDate);    //Set End Date

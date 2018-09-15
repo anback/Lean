@@ -13,18 +13,21 @@ const FORMAT = 'YYYYMMDD'
 let getData = (): Promise<Array<DataRow>> =>
   fetch(getBacktestResultsUrl()).then(res => res.json())
   .then(backtestDataPoints => {
-    backtestDataPoints = backtestDataPoints.map(b => ({...b, Key: b.Key.replace('Z', '')}))
-    let from = moment(Math.min(...backtestDataPoints.map(({Key}) => moment(Key).valueOf()))).format(FORMAT)
-    let to = moment(Math.max(...backtestDataPoints.map(({Key}) => moment(Key).valueOf()))).format(FORMAT)
+    backtestDataPoints = backtestDataPoints.map(b => ({...b, _moment: moment(b.Key.replace('Z', ''))}))
+    let from = moment(Math.min(...backtestDataPoints.map(({_moment}) => _moment.valueOf()))).format(FORMAT)
+    let to = moment(Math.max(...backtestDataPoints.map(({_moment}) => _moment.valueOf()))).format(FORMAT)
     return getTradeBars(from, to).then((tradeBars) => ({tradeBars, backtestDataPoints}))
   })
   .then(({tradeBars, backtestDataPoints}) => {
+    let backtestDataPointsHash = {}
+    backtestDataPoints.forEach((backtestDataPoint) => {
+      let key = `${Math.round(backtestDataPoint._moment.add(2, 'h').valueOf() / ONE_MINUTE) * ONE_MINUTE}`
+      backtestDataPointsHash[key] = backtestDataPoint
+    })
+
     tradeBars.forEach(tradeBar => {
       let tradeBarTimetamp = moment(tradeBar.date).valueOf()
-      let backtestDataPoint = backtestDataPoints.find(backtestDataPoint => {
-        let backtestDatapointTimetamp = Math.round(moment(backtestDataPoint.Key).valueOf() / ONE_MINUTE) * ONE_MINUTE
-        return moment(tradeBar.date).valueOf() === backtestDatapointTimetamp
-      })
+      let backtestDataPoint = backtestDataPointsHash[`${tradeBarTimetamp}`]
 
       tradeBar.backtestValue = backtestDataPoint ? backtestDataPoint.Value : 0
     })
@@ -50,7 +53,7 @@ let getTradeBarsForDate = (date: string) =>
   .then(text => text.split('\n').map(line => line.split(',').reduce((a,b, i) => ({...a, [COLUMN_NAMES[i]] : parseFloat(b)}), {})))
   .then((rows) => rows.map(({time, open, high, low, close, volume}) => ({
     close,
-    date: moment(moment(date).valueOf() + time).toDate(),
+    date: moment(moment(date).valueOf() + time).add(2, 'h').toDate(), //swedish timezone
     high,
     low,
     open,
