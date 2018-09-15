@@ -38,7 +38,7 @@ namespace QuantConnect.Algorithm.CSharp
     /// <meta name="tag" content="using data" />
     /// <meta name="tag" content="using quantconnect" />
     /// <meta name="tag" content="trading and orders" />
-    public class SnowflakeBitMEXMeanReversionMarketAlgorithm : QCAlgorithm
+    public class SnowflakeBitMEXMeanReversionAlgorithm : QCAlgorithm
     {
         private const string BITMEX = "bitmex";
         private const string ENTRY = "ENTRY"; 
