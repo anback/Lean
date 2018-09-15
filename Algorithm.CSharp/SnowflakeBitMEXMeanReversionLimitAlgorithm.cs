@@ -47,7 +47,8 @@ namespace QuantConnect.Algorithm.CSharp
         private const string EXIT = "EXIT";
         private const string XBTUSD = "XBTUSD";
         private Signal _lastSignal = new Signal{Time = DateTime.Now, Type = EXIT};
-        private static readonly decimal MEAN_REVERSION_THRESHOLD = new decimal(0.002);
+        private static readonly decimal MIN_MEAN_REVERSION_THRESHOLD = new decimal(0.002);
+        private static readonly decimal MAX_MEAN_REVERSION_THRESHOLD = new decimal(0.02);
         private Crypto _xbtusd;
         private const int MINUTES = 1;
         private decimal bidPrice = 0;
@@ -87,22 +88,24 @@ namespace QuantConnect.Algorithm.CSharp
             var rateOfChange = quote.MidPrice / firstQuote.MidPrice;
             
             if (Portfolio.CashBook["XBT"].ConversionRate == 0) return;
-
-            _lastSignal.isOld = _lastSignal.IsOld(data.Time);
-            var orderDirection = GetDirection();
             
             var meanReversion = rateOfChange - 1;
 
-            if (Math.Abs(meanReversion) < MEAN_REVERSION_THRESHOLD) return;
-            if (Math.Abs(meanReversion) > (decimal) 0.2) return; //Stupid guard for weird data
+            var isMeanReverting = Math.Abs(meanReversion) > MIN_MEAN_REVERSION_THRESHOLD &&
+                                  Math.Abs(meanReversion) < MAX_MEAN_REVERSION_THRESHOLD;
             
-            // !!!!!!!!!!!!!!!!!!!!!!alright next step is to define like hasRisenHigh/hasFallenLow variable over here and use it under here!!!! :)!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            if (Portfolio.Invested && _lastSignal.Type == ENTRY && _lastSignal.isOld) _lastSignal = new Signal{Time = data.Time, Type = EXIT};
-            if (!Portfolio.Invested && _lastSignal.Type == EXIT) _lastSignal = new Signal{Time = data.Time, Type = EXIT}
-            
-            _lastSignal = new Signal{Time = data.Time, Type = ENTRY, OrderDirection = meanReversion > 0 ? OrderDirection.Sell : OrderDirection.Buy};
+            if (Portfolio.Invested && _lastSignal.Type == ENTRY && _lastSignal.IsOld(data.Time)) _lastSignal = new Signal{Time = data.Time, Type = EXIT, OrderDirection = _lastSignal.OrderDirection == OrderDirection.Sell ? OrderDirection.Buy : OrderDirection.Sell};
+            if (!Portfolio.Invested && _lastSignal.Type == EXIT && isMeanReverting) _lastSignal = new Signal{Time = data.Time, Type = ENTRY, OrderDirection = meanReversion > 0 ? OrderDirection.Sell : OrderDirection.Buy};
 
-            Debug($"{_lastSignal.OrderDirection} {data.Time} meanReversion {meanReversion} quote: {quote.Time} {quote.MidPrice} firstQuote: {firstQuote.Time} {firstQuote.MidPrice}");
+            SyncOrders(GetDirection());
+        }
+
+        private void SyncOrders(OrderDirection? orderDirection)
+        {
+            //ALRIGHT HÄR NGNSTANS SKA VI KÖRA !!!!!!!!!!!!!!!!!!!!
+            //Alright what cases do we have here ? orderDirection can have three cases, null Buy and Sell, _limitOrderTicket can have 4 cases null long, short, no direction
+            this.ticket = LimitOrder("SPY", 100, 100.10m);
+            
         }
 
         private OrderDirection? GetDirection()
@@ -141,7 +144,7 @@ namespace QuantConnect.Algorithm.CSharp
 
             public bool IsOld(DateTime time) { return (time - Time).TotalMinutes >= MINUTES; }
             public bool isOld { get; set; }
-            public OrderDirection OrderDirection { get; set; }
+            public OrderDirection? OrderDirection { get; set; }
         }
     }
 }
