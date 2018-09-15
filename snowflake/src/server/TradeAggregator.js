@@ -7,10 +7,10 @@ const TEN_MILLION = 10000000
 const SOMETHING_HIGH = TEN_MILLION
 
 export default class {
-  resolution: number
+  resolution: Resolution
   bars: Object
   bars = {}
-  constructor(resolution: number) { this.resolution = resolution }
+  constructor(resolution: Resolution) { this.resolution = resolution }
 
   onNewTrade = ([time, price, volume]: Array<number>, {type, date}: Object) => {
 
@@ -40,7 +40,7 @@ export default class {
     this.bars[key] = bar
   }
 
-  getKey = (time: number):number => Math.floor(time / this.resolution) * this.resolution
+  getKey = (time: number):number => Math.floor(time / this.resolution.value) * this.resolution.value
 
   getBars = (): Array<Array<number>> => Object.keys(this.bars).map(key => this.bars[key]).map(bar => [bar.time, bar.open, bar.high, bar.low, bar.close, bar.volume])
 }

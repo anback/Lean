@@ -13,6 +13,7 @@ const FORMAT = 'YYYYMMDD'
 let getData = (): Promise<Array<DataRow>> =>
   fetch(getBacktestResultsUrl()).then(res => res.json())
   .then(backtestDataPoints => {
+    backtestDataPoints = backtestDataPoints.map(b => ({...b, Key: b.Key.replace('Z', '')}))
     let from = moment(Math.min(...backtestDataPoints.map(({Key}) => moment(Key).valueOf()))).format(FORMAT)
     let to = moment(Math.max(...backtestDataPoints.map(({Key}) => moment(Key).valueOf()))).format(FORMAT)
     return getTradeBars(from, to).then((tradeBars) => ({tradeBars, backtestDataPoints}))
@@ -21,7 +22,7 @@ let getData = (): Promise<Array<DataRow>> =>
     tradeBars.forEach(tradeBar => {
       let tradeBarTimetamp = moment(tradeBar.date).valueOf()
       let backtestDataPoint = backtestDataPoints.find(backtestDataPoint => {
-        let backtestDatapointTimetamp = Math.round(moment(backtestDataPoint.Key.replace('Z', '')).valueOf() / ONE_MINUTE) * ONE_MINUTE
+        let backtestDatapointTimetamp = Math.round(moment(backtestDataPoint.Key).valueOf() / ONE_MINUTE) * ONE_MINUTE
         return moment(tradeBar.date).valueOf() === backtestDatapointTimetamp
       })
 

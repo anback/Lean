@@ -9,20 +9,23 @@ import progress from 'stream-progressbar'
 import TradeAggregator from './TradeAggregator'
 import {ONE_SECOND, ONE_MINUTE, ONE_HOUR, ONE_DAY} from './Consts'
 
-const resolutions = [
-  {resolution: 'second', aggregator: new TradeAggregator(ONE_SECOND)},
-  {resolution: 'minute', aggregator: new TradeAggregator(ONE_MINUTE)},
-  {resolution: 'hour', aggregator: new TradeAggregator(ONE_HOUR)},
-  {resolution: 'daily', aggregator: new TradeAggregator(ONE_DAY)}
-]
-
 const FORMAT = 'YYYYMMDD'
 const QUOTE = 'quote'
 const TRADE = 'trade'
 const TICK = 'tick'
 
+const RESOLUTIONS = [
+  {name: 'second', value: ONE_SECOND},
+  {name: 'minute', value: ONE_MINUTE},
+  {name: 'hour', value: ONE_HOUR},
+  {name: 'daily', value: ONE_DAY}
+]
+
+const TICK_RESOLUTION = {name: 'tick', value: 0}
+const ALL_RESOLUTIONS = [...RESOLUTIONS, TICK_RESOLUTION]
+
 let getUri = ({date, type}) => `https://s3-eu-west-1.amazonaws.com/public.bitmex.com/data/${type}/${date}.csv.gz` // 20180101
-let getPath = ({date, type, resolution}) => `../data/crypto/gdax/${resolution}/xbtusd/${date}_${type}.zip`
+let getPath = ({date, type, resolution}) => `../data/crypto/gdax/${resolution.name}/xbtusd/${date}_${type}.zip`
 let onError = (e, options: Object) => {
   let path = getPath(options)
   if(fs.existsSync(path)) fs.unlinkSync(path)
@@ -50,7 +53,6 @@ if (!fs.existsSync('../data/crypto/gdax/daily')) fs.mkdirSync('../data/crypto/gd
 if (!fs.existsSync('../data/crypto/gdax/daily/xbtusd')) fs.mkdirSync('../data/crypto/gdax/daily/xbtusd')
 
 let {argv} = process
-
 let startDate = '20180901'
 let endDate = moment().add(-1, 'day').startOf('day').format(FORMAT)
 
@@ -63,7 +65,7 @@ let dates = []
 while (date.valueOf() <= moment(endDate).valueOf()) { dates.push(date.format(FORMAT)); date.add(1, 'd')}
 
 process.on('SIGINT', e => {
-  [TRADE, QUOTE].forEach(type => dates.forEach(date => [...resolutions, {resolution: TICK}].forEach(({resolution}) => {
+  [TRADE, QUOTE].forEach(type => dates.forEach(date => ALL_RESOLUTIONS.forEach(resolution => {
     try { fs.unlinkSync(getPath({type, date, resolution})) } catch (e) {}
   })))
   process.exit(1)
@@ -72,7 +74,7 @@ process.on('SIGINT', e => {
 let prefixes = {[TRADE]: {}, [QUOTE]: {}}
 let createTransform = (options) => new Transform({
     transform: function transformer(chunk, encoding, callback) {
-        let {type, date} = options
+        let {type, date, aggregators} = options
         let text = chunk.toString('utf8')
         text = (prefixes[options.type][date] || '') + text
         let rows = text.split('\n')
@@ -88,7 +90,7 @@ let createTransform = (options) => new Transform({
         })
         .filter(r => !!r)
 
-        if(type === TRADE) rows.forEach(trade => resolutions.forEach(({aggregator}) => aggregator.onNewTrade(trade, options)))
+        if(type === TRADE) rows.forEach(trade => aggregators.forEach((aggregator) => aggregator.onNewTrade(trade, options)))
         this.push(rows.map(row => row.join(',')).join('\n'))
         callback()
     }
@@ -96,19 +98,22 @@ let createTransform = (options) => new Transform({
 
 [TRADE, QUOTE].forEach(type =>
   dates
-  .filter(date => !fs.existsSync(getPath({date, type, resolution: TICK})))
+  .filter(date => !fs.existsSync(getPath({date, type, resolution: TICK_RESOLUTION})))
   .map(date => {
-    let options = {date, type, resolution: TICK}
-    let path = getPath({date, type, resolution: TICK})
+    let options = {date, type, resolution: TICK_RESOLUTION}
+    let path = getPath({date, type, resolution: TICK_RESOLUTION})
+    let aggregators = RESOLUTIONS.map(resolution => new TradeAggregator(resolution))
 
+    let uri = getUri({date, type})
+    console.log(`GET ${uri}`)
     let stream =
-    request(getUri({date, type}), (error, response) => {
-      if(error) return onError(options, error)
-      if(response.statusCode !== 200) return onError(options, new Error(JSON.stringify(response)))
+    request(uri, (error, response) => {
+      if(error) return onError(error, options)
+      if(response.statusCode !== 200) return onError(new Error(JSON.stringify(response)), options)
     })
     .pipe(progress(`${path} [:bar] :rate/bps :percent :etas`))
     .pipe(zlib.createGunzip())
-    .pipe(createTransform({date, type}))
+    .pipe(createTransform({date, type, aggregators}))
 
     var archive = archiver('zip',   {zlib: { level: 9 } });
     let output = fs.createWriteStream(path)
@@ -118,8 +123,8 @@ let createTransform = (options) => new Transform({
 
     if(type === QUOTE) return
 
-    output.on('close', () => resolutions.forEach(({resolution, aggregator}) => {
-      let path = getPath({date, type, resolution})
+    output.on('close', () => aggregators.forEach(aggregator => {
+      let path = getPath({date, type, resolution: aggregator.resolution})
       var archive = archiver('zip',   {zlib: { level: 9 } });
       let text = aggregator.getBars().map(bar => bar.join(',')).join('\n')
       archive.pipe(fs.createWriteStream(path))

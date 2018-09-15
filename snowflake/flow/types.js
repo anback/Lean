@@ -12,3 +12,8 @@ type DataRow = {
   volume: number,
   backtestValue: number
 }
+
+type Resolution = {
+  name: string,
+  value: number
+}

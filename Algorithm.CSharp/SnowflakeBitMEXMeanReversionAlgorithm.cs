@@ -41,7 +41,6 @@ namespace QuantConnect.Algorithm.CSharp
     public class SnowflakeBitMEXMeanReversionAlgorithm : QCAlgorithm
     {
         private const string BITMEX = "bitmex";
-        private RateOfChangeRatio _rateOfChangeRatio;
         private const string ENTRY = "ENTRY"; 
         private const string EXIT = "EXIT";
         private Signal _lastSignal = new Signal{Time = DateTime.Now, Type = EXIT};
@@ -50,19 +49,21 @@ namespace QuantConnect.Algorithm.CSharp
         private const int MINUTES = 1;
         private decimal bidPrice = 0;
         private decimal askPrice = 0;
-        private Quote _quote = new Quote {Time = DateTime.Now, MidPrice = 0};
         private List<Quote> _quotes = new List<Quote>();
+        private DateTime startDate;
+        private DateTime endDate;
 
         public override void Initialize()
         {
             //20180904
-            SetStartDate(2018, 9, 7);  //Set Start Date
-            SetEndDate(2018, 9, 7);    //Set End Date
+            startDate = new DateTime(2018, 9, 13);
+            endDate = new DateTime(2018, 9, 13);
+            SetStartDate(startDate);  //Set Start Date
+            SetEndDate(endDate);    //Set End Date
             SetCash(100000); 
 
             _xbtusd = AddCrypto("XBTUSD", Resolution.Tick, Market.GDAX);
             Securities["XBTUSD"].FeeModel = new ConstantFeeTransactionModel(0);
-            _rateOfChangeRatio = ROCR("XBTUSD", 1, Resolution.Minute);
             
             _xbtusd.SetMarginModel(new SecurityMarginModel());
         }
@@ -85,7 +86,6 @@ namespace QuantConnect.Algorithm.CSharp
             if (Portfolio.CashBook["XBT"].ConversionRate == 0) return;
             if (Portfolio.Invested && _lastSignal.Type == ENTRY && (data.Time - _lastSignal.Time).TotalMinutes >= MINUTES)
             {
-                // Debug($"Closed {data.Time} _lastSignal.Time {_lastSignal.Time}");
                 _lastSignal = new Signal{Time = data.Time, Type = EXIT};
                 SetHoldings(_xbtusd.Symbol, 0);
                 return;
@@ -106,7 +106,9 @@ namespace QuantConnect.Algorithm.CSharp
         public override void OnEndOfAlgorithm()
         {
             var json = JsonConvert.SerializeObject(Portfolio.Transactions.TransactionRecord.ToArray());
-            System.IO.File.WriteAllText(@"../../../snowflake/public/backtest.json", json);
+            const string format = "yyyyMMdd";
+            System.IO.File.WriteAllText($@"../../../snowflake/public/backtest.json", json);
+            System.IO.File.WriteAllText($@"../../../snowflake/public/backtest_{startDate.ToString(format)}_{endDate.ToString(format)}.json", json);
         }
 
         static decimal GetMidPrice(Tick tick) => (tick.AskPrice + tick.BidPrice) / 2;
@@ -118,3 +120,28 @@ namespace QuantConnect.Algorithm.CSharp
         public decimal MidPrice { get; set; }
     }
 }
+
+/*
+ *
+ *
+ * 20180914 21:47:58.709 Trace:: STATISTICS:: Total Trades 146
+20180914 21:47:58.709 Trace:: STATISTICS:: Average Win 0.08%
+20180914 21:47:58.709 Trace:: STATISTICS:: Average Loss -0.13%
+20180914 21:47:58.709 Trace:: STATISTICS:: Compounding Annual Return -99.756%
+20180914 21:47:58.709 Trace:: STATISTICS:: Drawdown 2.200%
+20180914 21:47:58.709 Trace:: STATISTICS:: Expectancy -0.172
+20180914 21:47:58.709 Trace:: STATISTICS:: Net Profit -1.635%
+20180914 21:47:58.709 Trace:: STATISTICS:: Sharpe Ratio -12.129
+20180914 21:47:58.709 Trace:: STATISTICS:: Loss Rate 48%
+20180914 21:47:58.709 Trace:: STATISTICS:: Win Rate 52%
+20180914 21:47:58.709 Trace:: STATISTICS:: Profit-Loss Ratio 0.59
+20180914 21:47:58.709 Trace:: STATISTICS:: Alpha -3.969
+20180914 21:47:58.709 Trace:: STATISTICS:: Beta 276.492
+20180914 21:47:58.709 Trace:: STATISTICS:: Annual Standard Deviation 0.17
+20180914 21:47:58.709 Trace:: STATISTICS:: Annual Variance 0.029
+20180914 21:47:58.709 Trace:: STATISTICS:: Information Ratio -12.214
+20180914 21:47:58.709 Trace:: STATISTICS:: Tracking Error 0.169
+20180914 21:47:58.709 Trace:: STATISTICS:: Treynor Ratio -0.007
+20180914 21:47:58.709 Trace:: STATISTICS:: Total Fees $0.00
+
+ */
