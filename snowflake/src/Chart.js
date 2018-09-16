@@ -8,6 +8,7 @@ import { ChartCanvas, Chart, ZoomButtons } from "react-stockcharts";
 import {
 	BarSeries,
 	CandlestickSeries,
+	LineSeries
 } from "react-stockcharts/lib/series";
 import { XAxis, YAxis } from "react-stockcharts/lib/axes";
 import {
@@ -68,7 +69,7 @@ class CandleStickChartWithZoomPan extends React.Component {
 
 		const margin = { left: 70, right: 70, top: 20, bottom: 30 };
 
-		const height = 720;
+		const height = 1120;
 
 		const gridHeight = height - margin.top - margin.bottom;
 		const gridWidth = width - margin.left - margin.right;
@@ -114,15 +115,14 @@ class CandleStickChartWithZoomPan extends React.Component {
 						onReset={this.handleReset}
 					/>
 				</Chart>
-				<Chart id={2} yExtents={d => d.volume} height={150} origin={(w, h) => [0, h - 300]}>
+				<Chart id={2} yExtents={d => d.volume} height={150} origin={(w, h) => [0, h - 700]}>
 					<YAxis axisAt="left" orient="left" ticks={5} tickFormat={format(".2s")} zoomEnabled={zoomEvent} />
 
 					<MouseCoordinateY at="left" orient="left" displayFormat={format(".4s")} />
 
 					<BarSeries yAccessor={d => d.volume} fill={(d) => d.close > d.open ? "#6BA583" : "#FF0000"} />
 				</Chart>
-				<Chart id={3} yExtents={(d: DataRow) => Math.sign(Math.random() - 0.5) * 200} height={150} origin={(w, h) => [0, h - 150]}>
-					<XAxis axisAt="bottom" orient="bottom" zoomEnabled={zoomEvent} {...xGrid} />
+				<Chart id={3} yExtents={(d: DataRow) => Math.sign(Math.random() - 0.5) * 200} height={150} origin={(w, h) => [0, h - 550]}>
 					<YAxis axisAt="left" orient="left" ticks={5} tickFormat={format(".2s")} zoomEnabled={zoomEvent} />
 
 					<MouseCoordinateX at="bottom" orient="bottom" displayFormat={timeFormat("%Y-%m-%d %H:%M:%S")} />
@@ -133,7 +133,18 @@ class CandleStickChartWithZoomPan extends React.Component {
 						fill={(d) => d.backtestValue > 0 ? "#6BA583" : "#FF0000"}
 						baseAt={(xScale, yScale, d) => yScale(0)} />
 				</Chart>
+				<Chart id={4} yExtents={(d: DataRow) => d.backtestResult} height={400} origin={(w, h) => [0, h - 400]}>
+					<XAxis axisAt="bottom" orient="bottom" zoomEnabled={zoomEvent} {...xGrid} />
+					<YAxis axisAt="left" orient="left" ticks={5} tickFormat={format(".2s")} zoomEnabled={zoomEvent} />
+
+					<MouseCoordinateX at="bottom" orient="bottom" displayFormat={timeFormat("%Y-%m-%d %H:%M:%S")} />
+					<MouseCoordinateY at="left" orient="left" displayFormat={format(".4s")} />
+
+					<LineSeries
+				    yAccessor={d => d.backtestResult} />
+				</Chart>
 				<CrossHairCursor />
+				<span>WHATEVER</span>
 			</ChartCanvas>
 		);
 	}

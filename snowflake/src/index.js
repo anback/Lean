@@ -4,17 +4,28 @@ import { render } from 'react-dom';
 import Chart from './Chart';
 import getData from './getData'
 
-class ChartComponent extends React.Component<{}, {data1: Array<DataRow>, data2: Array<DataRow>}> {
+class ChartComponent extends React.Component<{}, {data: Array<DataRow>, stats: Object}> {
 	componentDidMount() {
-		getData().then(data1 => this.setState({data1}))
-		// getData('backtest_SnowflakeBitMEXMeanReversionMarketAlgorithm_20180913_20180913.json').then(data2 => this.setState({data2}))
+		getData().then(data => {
+			this.setState({data, stats: this.getStats(data)})
+		})
 	}
 	render() {
-		if (!this.state || !this.state.data1) return <div>Loading...</div>
+		if (!this.state || !this.state.data) return <div>Loading...</div>
 		return (<div>
-							<Chart type={"hybrid"} data={this.state.data1} />
+							<Chart type={"hybrid"} data={this.state.data} />
+							{this.state.stats}
 					 </div>)
 	}
+
+	getStats = (data: Array<DataRow>) =>
+		data
+			.filter(row => data.backtestValue !== 0)
+			.sort((a,b) => a.backtestValue - b.backtestValue)
+			.filter((x, i) => i < 10)
+			.map((row, i) => (<div key={i}>{JSON.stringify(row)}</div>))
+
+
 }
 
 //$FlowFixMe

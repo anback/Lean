@@ -10,7 +10,8 @@ type DataRow = {
   percentChange: ?number,
   split: string,
   volume: number,
-  backtestValue: number
+  backtestValue: number,
+  backtestResult: number
 }
 
 type Resolution = {
