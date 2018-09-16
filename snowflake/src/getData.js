@@ -7,11 +7,10 @@ import {ONE_MINUTE} from './server/Consts';
 const BASE_URL = 'http://localhost:9000'
 const COLUMN_NAMES = ['time', 'open', 'high', 'low', 'close', 'volume']
 const getTradeDataUrl = (date: string) => `${BASE_URL}/minute/xbtusd/${date}_trade.zip`
-const getBacktestResultsUrl = () => `${BASE_URL}/backtest.json`
 const FORMAT = 'YYYYMMDD'
 
-let getData = (): Promise<Array<DataRow>> =>
-  fetch(getBacktestResultsUrl()).then(res => res.json())
+let getData = (fileName: string = `backtest.json`): Promise<Array<DataRow>> =>
+  fetch(`${BASE_URL}/${fileName}`).then(res => res.json())
   .then(backtestDataPoints => {
     backtestDataPoints = backtestDataPoints.map(b => ({...b, _moment: moment(b.Key.replace('Z', ''))}))
     let from = moment(Math.min(...backtestDataPoints.map(({_moment}) => _moment.valueOf()))).format(FORMAT)

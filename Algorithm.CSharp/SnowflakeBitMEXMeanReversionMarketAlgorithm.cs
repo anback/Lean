@@ -27,6 +27,7 @@ using QuantConnect.Orders.Fills;
 using QuantConnect.Securities;
 using QuantConnect.Securities.Crypto;
 using QuantConnect.Util;
+using Snowflake;
 using static System.Diagnostics.Debug;
 
 namespace QuantConnect.Algorithm.CSharp
@@ -38,7 +39,7 @@ namespace QuantConnect.Algorithm.CSharp
     /// <meta name="tag" content="using data" />
     /// <meta name="tag" content="using quantconnect" />
     /// <meta name="tag" content="trading and orders" />
-    public class SnowflakeBitMEXMeanReversionMarketAlgorithm : QCAlgorithm
+    public class SnowflakeBitMEXMeanReversionMarketAlgorithm : QCAlgorithm, ISnowflakeAlgorithm
     {
         private const string BITMEX = "bitmex";
         private const string ENTRY = "ENTRY"; 
@@ -50,16 +51,19 @@ namespace QuantConnect.Algorithm.CSharp
         private decimal bidPrice = 0;
         private decimal askPrice = 0;
         private List<Quote> _quotes = new List<Quote>();
-        private DateTime startDate;
-        private DateTime endDate;
+        
+        public DateTime _startDate { get; private set; }
+        public DateTime _endDate { get; private set; }
+        public string _name { get; private set; }
 
         public override void Initialize()
         {
             //20180904
-            startDate = new DateTime(2018, 9, 10);
-            endDate = new DateTime(2018, 9, 13);
-            SetStartDate(startDate);  //Set Start Date
-            SetEndDate(endDate);    //Set End Date
+            _startDate = new DateTime(2018, 9, 13);
+            _endDate = new DateTime(2018, 9, 13);
+            _name = "SnowflakeBitMEXMeanReversionMarketAlgorithm";
+            SetStartDate(_startDate);  //Set Start Date
+            SetEndDate(_endDate);    //Set End Date
             SetCash(100000); 
 
             _xbtusd = AddCrypto("XBTUSD", Resolution.Tick, Market.GDAX);
@@ -105,10 +109,7 @@ namespace QuantConnect.Algorithm.CSharp
 
         public override void OnEndOfAlgorithm()
         {
-            var json = JsonConvert.SerializeObject(Portfolio.Transactions.TransactionRecord.ToArray());
-            const string format = "yyyyMMdd";
-            System.IO.File.WriteAllText($@"../../../snowflake/public/backtest.json", json);
-            System.IO.File.WriteAllText($@"../../../snowflake/public/backtest_{startDate.ToString(format)}_{endDate.ToString(format)}.json", json);
+            Snowflake.Common.OnEndOfAlgorithm(this);
         }
 
         static decimal GetMidPrice(Tick tick) => (tick.AskPrice + tick.BidPrice) / 2;

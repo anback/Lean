@@ -18,6 +18,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using Newtonsoft.Json;
+using QuantConnect.Algorithm;
+using QuantConnect.Algorithm.CSharp;
 using QuantConnect.Brokerages;
 using QuantConnect.Data;
 using QuantConnect.Data.Fundamental;
@@ -30,6 +32,7 @@ using QuantConnect.Orders.Fills;
 using QuantConnect.Securities;
 using QuantConnect.Securities.Crypto;
 using QuantConnect.Util;
+using Snowflake;
 using static System.Diagnostics.Debug;
 
 namespace QuantConnect.Algorithm.CSharp
@@ -41,11 +44,12 @@ namespace QuantConnect.Algorithm.CSharp
     /// <meta name="tag" content="using data" />
     /// <meta name="tag" content="using quantconnect" />
     /// <meta name="tag" content="trading and orders" />
-    public class SnowflakeBitMEXMeanReversionLimitAlgorithm : QCAlgorithm
+    public class SnowflakeBitMEXMeanReversionLimitAlgorithm : QCAlgorithm, ISnowflakeAlgorithm
     {
         private const string ENTRY = "ENTRY"; 
         private const string EXIT = "EXIT";
         private const string XBTUSD = "XBTUSD";
+        private static readonly decimal TICK_SIZE = new decimal(0.5);
         private Signal _lastSignal = new Signal{Time = DateTime.Now, Type = EXIT};
         private static readonly decimal MIN_MEAN_REVERSION_THRESHOLD = new decimal(0.002);
         private static readonly decimal MAX_MEAN_REVERSION_THRESHOLD = new decimal(0.02);
@@ -54,20 +58,24 @@ namespace QuantConnect.Algorithm.CSharp
         private decimal bidPrice = 0;
         private decimal askPrice = 0;
         private List<Quote> _quotes = new List<Quote>();
-        private DateTime startDate;
-        private DateTime endDate;
+        private OrderTicket _orderticket;
+        
+        public DateTime _startDate { get; private set; }
+        public DateTime _endDate { get; private set; }
+        public string _name { get; set; }
 
         public override void Initialize()
         {
             //20180904
-            startDate = new DateTime(2018, 9, 13);
-            endDate = new DateTime(2018, 9, 13);
-            SetStartDate(startDate);  //Set Start Date
-            SetEndDate(endDate);    //Set End Date
+            _startDate = new DateTime(2018, 9, 13);
+            _endDate = new DateTime(2018, 9, 13);
+            _name = "SnowflakeBitMEXMeanReversionLimitAlgorithm";
+            SetStartDate(_startDate);  //Set Start Date
+            SetEndDate(_endDate);    //Set End Date
             SetCash(100000); 
 
             _xbtusd = AddCrypto("XBTUSD", Resolution.Tick, Market.GDAX);
-            Securities["XBTUSD"].FeeModel = new ConstantFeeTransactionModel(0);
+            Securities["XBTUSD"].FeeModel = new RelativeFeeTransactionModel(new decimal(-0.0025));
             
             _xbtusd.SetMarginModel(new SecurityMarginModel());
         }
@@ -80,7 +88,7 @@ namespace QuantConnect.Algorithm.CSharp
             var tick = ticks.Last();
             if (tick.BidPrice == 0) return;
             if (tick.AskPrice == 0) return;
-            var quote = new Quote {Time = data.Time, MidPrice = GetMidPrice(tick)};
+            var quote = new Quote {Time = data.Time, BidPrice = tick.BidPrice, AskPrice = tick.AskPrice, MidPrice = (tick.BidPrice + tick.AskPrice)/ 2};
             _quotes.Add(quote);
             _quotes.RemoveAll(q => (data.Time - q.Time).TotalMinutes > MINUTES);
             if (_quotes.IsNullOrEmpty()) return;
@@ -93,60 +101,125 @@ namespace QuantConnect.Algorithm.CSharp
 
             var isMeanReverting = Math.Abs(meanReversion) > MIN_MEAN_REVERSION_THRESHOLD &&
                                   Math.Abs(meanReversion) < MAX_MEAN_REVERSION_THRESHOLD;
-            
-            if (Portfolio.Invested && _lastSignal.Type == ENTRY && _lastSignal.IsOld(data.Time)) _lastSignal = new Signal{Time = data.Time, Type = EXIT, OrderDirection = _lastSignal.OrderDirection == OrderDirection.Sell ? OrderDirection.Buy : OrderDirection.Sell};
-            if (!Portfolio.Invested && _lastSignal.Type == EXIT && isMeanReverting) _lastSignal = new Signal{Time = data.Time, Type = ENTRY, OrderDirection = meanReversion > 0 ? OrderDirection.Sell : OrderDirection.Buy};
 
-            SyncOrders(GetDirection());
+            if (Portfolio.Invested && _lastSignal.Type == ENTRY && _lastSignal.IsOld(data.Time))
+            {
+                _lastSignal = new Signal {Time = data.Time, Type = EXIT, Quantity = -1 * _lastSignal.Quantity};
+                Debug($"Closing {data.Time}");
+            }
+            
+            if (!Portfolio.Invested && _lastSignal.Type == EXIT && isMeanReverting)
+            {
+                _lastSignal = new Signal{Time = data.Time, Type = ENTRY, Quantity = -1 * Math.Sign(meanReversion) * Portfolio.Cash / quote.BidPrice};
+                var side = _lastSignal.Quantity > 0 ? OrderDirection.Buy : OrderDirection.Sell;
+                Debug($"{side} {data.Time} meanReversion {meanReversion} quote: {quote.Time} {quote.MidPrice} firstQuote: {firstQuote.Time} {firstQuote.MidPrice}");
+            }
+
+            SyncOrders();
         }
 
-        private void SyncOrders(OrderDirection? orderDirection)
+        private void SyncOrders()
         {
-            //ALRIGHT HÄR NGNSTANS SKA VI KÖRA !!!!!!!!!!!!!!!!!!!!
-            //Alright what cases do we have here ? orderDirection can have three cases, null Buy and Sell, _limitOrderTicket can have 4 cases null long, short, no direction
-            this.ticket = LimitOrder("SPY", 100, 100.10m);
             
+            var quote = _quotes.Last();
+            var price = _lastSignal.Quantity > 0 ? quote.AskPrice - TICK_SIZE : quote.BidPrice + TICK_SIZE;
+            
+            if (!Portfolio.Invested && _lastSignal.Type == EXIT) CancelOrder();
+            if (!Portfolio.Invested && _lastSignal.Type == ENTRY) SyncOrder(_lastSignal.Quantity, price);
+            if (Portfolio.Invested && _lastSignal.Type == EXIT) SyncOrder(-1 * Portfolio[XBTUSD].Quantity, price);
+            if (Portfolio.Invested && _lastSignal.Type == ENTRY) CancelOrder();
         }
 
-        private OrderDirection? GetDirection()
+        private void CancelOrder()
         {
+            if (_orderticket == null) return;
             
-            if (_lastSignal.Type == EXIT && Portfolio.Invested) return null;
-            if (_lastSignal.Type == EXIT && !Portfolio.Invested) return null;
-            if (_lastSignal.Type == ENTRY && Portfolio.Invested) return null;
-            if (_lastSignal.Type == ENTRY && !Portfolio.Invested) return _lastSignal.OrderDirection;
+            switch (_orderticket.Status)
+            {
+                case OrderStatus.Canceled:
+                case OrderStatus.CancelPending:
+                case OrderStatus.Filled:
+                case OrderStatus.Invalid: return;
+                default: _orderticket.Cancel(); return;
+            }
+        }
+
+        private void SyncOrder(decimal quantity, decimal price)
+        {
+            if (_orderticket == null)
+            {
+                _orderticket = LimitOrder(_xbtusd.Symbol, quantity, price); 
+                return;
+            }
             
-            throw new Exception("Whatever");
+            switch (_orderticket.Status)
+            {
+                case OrderStatus.Canceled:
+                case OrderStatus.CancelPending:
+                case OrderStatus.Filled:
+                case OrderStatus.Invalid: 
+                    _orderticket = LimitOrder(_xbtusd.Symbol, quantity, price); 
+                    return;
+                case OrderStatus.New:
+                case OrderStatus.Submitted:
+                case OrderStatus.PartiallyFilled:
+                case OrderStatus.None:
+                    if (price == _orderticket.Get(OrderField.LimitPrice)) return;
+                    _orderticket.Update(new UpdateOrderFields {LimitPrice = price});
+                    return;
+            }
+           
+        }
+
+        public override void OnOrderEvent(OrderEvent orderEvent)
+        {
+            if (orderEvent.FillQuantity == 0) return;
+            Debug(orderEvent.ToString());
         }
 
         public override void OnEndOfAlgorithm()
         {
-            var json = JsonConvert.SerializeObject(Portfolio.Transactions.TransactionRecord.ToArray());
-            const string format = "yyyyMMdd";
-            System.IO.File.WriteAllText($@"../../../snowflake/public/backtest.json", json);
-            System.IO.File.WriteAllText($@"../../../snowflake/public/backtest_{startDate.ToString(format)}_{endDate.ToString(format)}.json", json);
-            // Process.Start("/bin/bash", "-c open -a 'Google Chrome' http://localhost:3000");
+            Snowflake.Common.OnEndOfAlgorithm(this);
         }
-
-        static decimal GetMidPrice(Tick tick) => (tick.AskPrice + tick.BidPrice) / 2;
 
         private class Quote
         {
             public DateTime Time { get; set; }
+            public decimal BidPrice { get; set; }
+            public decimal AskPrice { get; set; }
             public decimal MidPrice { get; set; }
-            public Func<DateTime, DateTime> GetTotalMinutes = (DateTime now) => now;
         }
-        
         private class Signal
         {
             public DateTime Time { get; set; }
             public string Type { get; set; }
-
+            public decimal Quantity { get; set; }
             public bool IsOld(DateTime time) { return (time - Time).TotalMinutes >= MINUTES; }
-            public bool isOld { get; set; }
-            public OrderDirection? OrderDirection { get; set; }
         }
     }
+}
+
+namespace Snowflake
+{
+    public interface ISnowflakeAlgorithm : IAlgorithm
+    {
+        DateTime _startDate { get; }
+        DateTime _endDate { get; }
+        string _name { get; }
+    }
+    
+    public static class Common
+    {
+        public static void OnEndOfAlgorithm(ISnowflakeAlgorithm a)
+        {
+            var json = JsonConvert.SerializeObject(a.Portfolio.Transactions.TransactionRecord.ToArray());
+            const string format = "yyyyMMdd";
+            System.IO.File.WriteAllText($@"../../../snowflake/public/backtest.json", json);
+            System.IO.File.WriteAllText($@"../../../snowflake/public/backtest_{a._name}_{a._startDate.ToString(format)}_{a._endDate.ToString(format)}.json", json);
+            Process.Start("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "http://localhost:3000");
+        }
+    }
+
 }
 
 /*
@@ -171,6 +244,4 @@ namespace QuantConnect.Algorithm.CSharp
 20180915 08:09:55.363 Trace:: STATISTICS:: Tracking Error 0
 20180915 08:09:55.363 Trace:: STATISTICS:: Treynor Ratio 0
 20180915 08:09:55.363 Trace:: STATISTICS:: Total Fees $0.00
-
-
  */
