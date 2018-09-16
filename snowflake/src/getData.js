@@ -19,16 +19,21 @@ let getData = (fileName: string = `backtest.json`): Promise<Array<DataRow>> =>
   })
   .then(({tradeBars, backtestDataPoints}) => {
     let backtestDataPointsHash = {}
+    let res = 0
     backtestDataPoints.forEach((backtestDataPoint) => {
+      res += backtestDataPoint.Value
       let key = `${Math.round(backtestDataPoint._moment.add(2, 'h').valueOf() / ONE_MINUTE) * ONE_MINUTE}`
-      backtestDataPointsHash[key] = backtestDataPoint
+      backtestDataPointsHash[key] = {...backtestDataPoint, res}
     })
 
+    res = 0
     tradeBars.forEach(tradeBar => {
       let tradeBarTimetamp = moment(tradeBar.date).valueOf()
       let backtestDataPoint = backtestDataPointsHash[`${tradeBarTimetamp}`]
 
       tradeBar.backtestValue = backtestDataPoint ? backtestDataPoint.Value : 0
+      tradeBar.backtestResult = backtestDataPoint ? backtestDataPoint.res : res
+      if(backtestDataPoint) res = backtestDataPoint.res
     })
 
     return tradeBars

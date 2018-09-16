@@ -18,22 +18,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using Newtonsoft.Json;
-using QuantConnect.Algorithm;
-using QuantConnect.Algorithm.CSharp;
-using QuantConnect.Brokerages;
 using QuantConnect.Data;
-using QuantConnect.Data.Fundamental;
-using QuantConnect.Data.Market;
-using QuantConnect.Indicators;
 using QuantConnect.Interfaces;
-using QuantConnect.Notifications;
 using QuantConnect.Orders;
-using QuantConnect.Orders.Fills;
 using QuantConnect.Securities;
 using QuantConnect.Securities.Crypto;
 using QuantConnect.Util;
 using Snowflake;
-using static System.Diagnostics.Debug;
 
 namespace QuantConnect.Algorithm.CSharp
 {
@@ -59,6 +50,7 @@ namespace QuantConnect.Algorithm.CSharp
         private decimal askPrice = 0;
         private List<Quote> _quotes = new List<Quote>();
         private OrderTicket _orderticket;
+        private static readonly decimal LEVERAGE = new decimal(0.1);
         
         public DateTime _startDate { get; private set; }
         public DateTime _endDate { get; private set; }
@@ -67,12 +59,12 @@ namespace QuantConnect.Algorithm.CSharp
         public override void Initialize()
         {
             //20180904
-            _startDate = new DateTime(2018, 9, 13);
-            _endDate = new DateTime(2018, 9, 13);
+            _startDate = new DateTime(2018, 9, 1);
+            _endDate = new DateTime(2018, 9, 15);
             _name = "SnowflakeBitMEXMeanReversionLimitAlgorithm";
             SetStartDate(_startDate);  //Set Start Date
             SetEndDate(_endDate);    //Set End Date
-            SetCash(100000); 
+            SetCash(1000000);
 
             _xbtusd = AddCrypto("XBTUSD", Resolution.Tick, Market.GDAX);
             Securities["XBTUSD"].FeeModel = new RelativeFeeTransactionModel(new decimal(-0.0025));
@@ -81,7 +73,7 @@ namespace QuantConnect.Algorithm.CSharp
         }
 
         public override void OnData(Slice data)
-        {
+        {   
             if (data.Ticks["XBTUSD"].IsNullOrEmpty()) return;
             var ticks = data.Ticks["XBTUSD"].Where(t => t.TickType == TickType.Quote);
             if (ticks.IsNullOrEmpty()) return;
@@ -110,7 +102,7 @@ namespace QuantConnect.Algorithm.CSharp
             
             if (!Portfolio.Invested && _lastSignal.Type == EXIT && isMeanReverting)
             {
-                _lastSignal = new Signal{Time = data.Time, Type = ENTRY, Quantity = -1 * Math.Sign(meanReversion) * Portfolio.Cash / quote.BidPrice};
+                _lastSignal = new Signal{Time = data.Time, Type = ENTRY, Quantity = -1 * Math.Sign(meanReversion) * Portfolio.Cash / quote.AskPrice * LEVERAGE};
                 var side = _lastSignal.Quantity > 0 ? OrderDirection.Buy : OrderDirection.Sell;
                 Debug($"{side} {data.Time} meanReversion {meanReversion} quote: {quote.Time} {quote.MidPrice} firstQuote: {firstQuote.Time} {firstQuote.MidPrice}");
             }
@@ -119,14 +111,10 @@ namespace QuantConnect.Algorithm.CSharp
         }
 
         private void SyncOrders()
-        {
-            
-            var quote = _quotes.Last();
-            var price = _lastSignal.Quantity > 0 ? quote.AskPrice - TICK_SIZE : quote.BidPrice + TICK_SIZE;
-            
+        { 
             if (!Portfolio.Invested && _lastSignal.Type == EXIT) CancelOrder();
-            if (!Portfolio.Invested && _lastSignal.Type == ENTRY) SyncOrder(_lastSignal.Quantity, price);
-            if (Portfolio.Invested && _lastSignal.Type == EXIT) SyncOrder(-1 * Portfolio[XBTUSD].Quantity, price);
+            if (!Portfolio.Invested && _lastSignal.Type == ENTRY) SyncOrder(_lastSignal.Quantity);
+            if (Portfolio.Invested && _lastSignal.Type == EXIT) SyncOrder(-1 * Portfolio[XBTUSD].Quantity);
             if (Portfolio.Invested && _lastSignal.Type == ENTRY) CancelOrder();
         }
 
@@ -144,8 +132,11 @@ namespace QuantConnect.Algorithm.CSharp
             }
         }
 
-        private void SyncOrder(decimal quantity, decimal price)
+        private void SyncOrder(decimal quantity)
         {
+            var quote = _quotes.Last();
+            var price = quantity > 0 ? quote.AskPrice - TICK_SIZE : quote.BidPrice + TICK_SIZE;
+            
             if (_orderticket == null)
             {
                 _orderticket = LimitOrder(_xbtusd.Symbol, quantity, price); 
