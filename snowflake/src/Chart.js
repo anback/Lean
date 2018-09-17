@@ -144,7 +144,6 @@ class CandleStickChartWithZoomPan extends React.Component {
 				    yAccessor={d => d.backtestResult} />
 				</Chart>
 				<CrossHairCursor />
-				<span>WHATEVER</span>
 			</ChartCanvas>
 		);
 	}

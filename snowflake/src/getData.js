@@ -2,11 +2,11 @@
 import JSZip from 'jszip'
 import JSZipUtils from 'jszip-utils'
 import moment from 'moment'
-import {ONE_MINUTE} from './server/Consts';
+import {ONE_MINUTE, ONE_SECOND} from './server/Consts';
 
 const BASE_URL = 'http://localhost:9000'
 const COLUMN_NAMES = ['time', 'open', 'high', 'low', 'close', 'volume']
-const getTradeDataUrl = (date: string) => `${BASE_URL}/minute/xbtusd/${date}_trade.zip`
+const getTradeDataUrl = (date: string) => `${BASE_URL}/second/xbtusd/${date}_trade.zip`
 const FORMAT = 'YYYYMMDD'
 
 let getData = (fileName: string = `backtest.json`): Promise<Array<DataRow>> =>
@@ -22,7 +22,7 @@ let getData = (fileName: string = `backtest.json`): Promise<Array<DataRow>> =>
     let res = 0
     backtestDataPoints.forEach((backtestDataPoint) => {
       res += backtestDataPoint.Value
-      let key = `${Math.round(backtestDataPoint._moment.add(2, 'h').valueOf() / ONE_MINUTE) * ONE_MINUTE}`
+      let key = `${Math.round(backtestDataPoint._moment.add(2, 'h').valueOf() / ONE_SECOND) * ONE_SECOND}`
       backtestDataPointsHash[key] = {...backtestDataPoint, res}
     })
 

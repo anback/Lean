@@ -3,8 +3,9 @@ import React from 'react';
 import { render } from 'react-dom';
 import Chart from './Chart';
 import getData from './getData'
+import moment from 'moment'
 
-class ChartComponent extends React.Component<{}, {data: Array<DataRow>, stats: Object}> {
+class ChartComponent extends React.Component<{}, {data: Array<DataRow>, stats: Array<any>}> {
 	componentDidMount() {
 		getData().then(data => {
 			this.setState({data, stats: this.getStats(data)})
@@ -20,12 +21,11 @@ class ChartComponent extends React.Component<{}, {data: Array<DataRow>, stats: O
 
 	getStats = (data: Array<DataRow>) =>
 		data
-			.filter(row => data.backtestValue !== 0)
+			.filter(row => row.backtestValue !== 0)
 			.sort((a,b) => a.backtestValue - b.backtestValue)
 			.filter((x, i) => i < 10)
+			.map(row => ({...row, date: moment(row.date).utc().add(2, 'h').format()}))
 			.map((row, i) => (<div key={i}>{JSON.stringify(row)}</div>))
-
-
 }
 
 //$FlowFixMe
