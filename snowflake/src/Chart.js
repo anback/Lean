@@ -98,7 +98,7 @@ class CandleStickChartWithZoomPan extends React.Component {
 				xExtents={xExtents}
 				xAccessor={xAccessor}
 				displayXAccessor={displayXAccessor}>
-				{this.getCharts().map(({height, getComponent}) => getComponent({height}))}
+				{this.getCharts().map(({height, getComponent}, i, array) => getComponent({height, top: array.filter((x, j) => j >= i).reduce((a,b) => a + b.height, 0)}))}
 				<CrossHairCursor />
 			</ChartCanvas>
 		);
@@ -141,17 +141,19 @@ class CandleStickChartWithZoomPan extends React.Component {
 		},
 		{
 			height: 150,
-			getComponent: ({height}) => <Chart id={2} yExtents={d => d.volume} height={height} origin={(w, h) => [0, h - 700]}>
-				<YAxis axisAt="left" orient="left" ticks={5} tickFormat={format(".2s")} zoomEnabled={zoomEvent} />
+			getComponent: ({height, top}) => {
+				return <Chart id={2} yExtents={d => d.volume} height={height} origin={(w, h) => [0, h - top]}>
+					<YAxis axisAt="left" orient="left" ticks={5} tickFormat={format(".2s")} zoomEnabled={zoomEvent} />
 
-				<MouseCoordinateY at="left" orient="left" displayFormat={format(".4s")} />
+					<MouseCoordinateY at="left" orient="left" displayFormat={format(".4s")} />
 
-				<BarSeries yAccessor={d => d.volume} fill={(d) => d.close > d.open ? "#6BA583" : "#FF0000"} />
-			</Chart>
+					<BarSeries yAccessor={d => d.volume} fill={(d) => d.close > d.open ? "#6BA583" : "#FF0000"} />
+				</Chart>
+			}
 		},
 		{
 			height: 150,
-			getComponent: ({height}) => <Chart id={3} yExtents={(d: DataRow) => Math.sign(Math.random() - 0.5) * 200} height={height} origin={(w, h) => [0, h - 550]}>
+			getComponent: ({height, top}) => <Chart id={3} yExtents={(d: DataRow) => Math.sign(Math.random() - 0.5) * 200} height={height} origin={(w, h) => [0, h - top]}>
 				<YAxis axisAt="left" orient="left" ticks={5} tickFormat={format(".2s")} zoomEnabled={zoomEvent} />
 
 				<MouseCoordinateX at="bottom" orient="bottom" displayFormat={timeFormat("%Y-%m-%d %H:%M:%S")} />
@@ -165,7 +167,7 @@ class CandleStickChartWithZoomPan extends React.Component {
 		},
 		{
 			height: 400,
-			getComponent : ({height}) => <Chart id={4} yExtents={(d: DataRow) => d.backtestResult} height={height} origin={(w, h) => [0, h - 400]}>
+			getComponent : ({height, top}) => <Chart id={4} yExtents={(d: DataRow) => d.backtestResult} height={height} origin={(w, h) => [0, h - top]}>
 				<XAxis axisAt="bottom" orient="bottom" zoomEnabled={zoomEvent} {...xGrid} />
 				<YAxis axisAt="left" orient="left" ticks={5} tickFormat={format(".2s")} zoomEnabled={zoomEvent} />
 
