@@ -167,7 +167,7 @@ class CandleStickChartWithZoomPan extends React.Component {
 		},
 		{
 			height: 400,
-			getComponent : ({height, top}) => <Chart id={4} yExtents={(d: DataRow) => d.backtestResult} height={height} origin={(w, h) => [0, h - top]}>
+			getComponent : ({height, top}) => <Chart id={4} yExtents={(d: DataRow) => [0, -25000]} height={height} origin={(w, h) => [0, h - top]}>
 				<XAxis axisAt="bottom" orient="bottom" zoomEnabled={zoomEvent} {...xGrid} />
 				<YAxis axisAt="left" orient="left" ticks={5} tickFormat={format(".2s")} zoomEnabled={zoomEvent} />
 
