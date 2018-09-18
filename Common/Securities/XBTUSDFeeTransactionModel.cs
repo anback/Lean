@@ -21,19 +21,11 @@ namespace QuantConnect.Securities
     /// <summary>
     /// Provides a transaction model that always returns the same order fee.
     /// </summary>
-    public sealed class RelativeFeeTransactionModel : SecurityTransactionModel
+    public sealed class XBTUSDFeeTransactionModel : SecurityTransactionModel
     {
-        private readonly decimal _fee;
+        private const decimal _fee = 0.0075m;
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ConstantFeeTransactionModel"/> class with the specified <paramref name="fee"/>
-        /// </summary>
-        /// <param name="fee">The constant order fee used by the model</param>
-        public RelativeFeeTransactionModel(decimal fee)
-        {
-            _fee = fee;
-        }
-
+        /// <inheritdoc />
         /// <summary>
         /// Returns the constant fee for the model
         /// </summary>
@@ -42,7 +34,8 @@ namespace QuantConnect.Securities
         /// <returns>The cost of the order in units of the account currency</returns>
         public override decimal GetOrderFee(Security security, Order order)
         {
-            return _fee * order.Quantity * order.Price;
+            if (order.Type == OrderType.Market) return order.Price * order.Quantity * _fee;
+            return 0;
         }
     }
 }

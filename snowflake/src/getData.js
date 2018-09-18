@@ -2,7 +2,7 @@
 import JSZip from 'jszip'
 import JSZipUtils from 'jszip-utils'
 import moment from 'moment'
-import {ONE_MINUTE, ONE_SECOND} from './server/Consts';
+import {ONE_SECOND} from './server/Consts';
 
 const BASE_URL = 'http://localhost:9000'
 const COLUMN_NAMES = ['time', 'open', 'high', 'low', 'close', 'volume']
@@ -10,7 +10,8 @@ const getTradeDataUrl = (date: string) => `${BASE_URL}/second/xbtusd/${date}_tra
 const FORMAT = 'YYYYMMDD'
 
 let getData = (fileName: string = `backtest.json`): Promise<Array<DataRow>> =>
-  fetch(`${BASE_URL}/${fileName}`).then(res => res.json())
+  fetch(`${BASE_URL}/${fileName}`)
+  .then(res => res.json())
   .then(backtestDataPoints => {
     backtestDataPoints = backtestDataPoints.map(b => ({...b, _moment: moment(b.Key.replace('Z', ''))}))
     let from = moment(Math.min(...backtestDataPoints.map(({_moment}) => _moment.valueOf()))).format(FORMAT)
@@ -50,7 +51,8 @@ let getTradeBars = (from: string, to: string) => {
 let getTradeBarsForDate = (date: string) =>
   new JSZip.external.Promise((resolve, reject) =>
     JSZipUtils.getBinaryContent(getTradeDataUrl(date), (err, data) => {
-        if (err) return reject(err)
+
+        if (err) reject(err)
         resolve(JSZip.loadAsync(data))
   }))
   .then(data => data.files[`${date}.csv`].async("text"))

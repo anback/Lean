@@ -7,9 +7,9 @@ import moment from 'moment'
 
 class ChartComponent extends React.Component<{}, {data: Array<DataRow>, stats: Array<any>}> {
 	componentDidMount() {
-		getData().then(data => {
-			this.setState({data, stats: this.getStats(data)})
-		})
+		getData()
+		.then(data => this.setState({data, stats: this.getStats(data)}))
+
 	}
 	render() {
 		if (!this.state || !this.state.data) return <div>Loading...</div>

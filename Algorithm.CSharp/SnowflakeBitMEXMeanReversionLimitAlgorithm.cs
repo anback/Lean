@@ -18,7 +18,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using Newtonsoft.Json;
+using NodaTime;
 using QuantConnect.Data;
+using QuantConnect.Indicators;
 using QuantConnect.Interfaces;
 using QuantConnect.Orders;
 using QuantConnect.Securities;
@@ -51,7 +53,8 @@ namespace QuantConnect.Algorithm.CSharp
         private List<Quote> _quotes = new List<Quote>();
         private OrderTicket _orderticket;
         private static readonly decimal LEVERAGE = new decimal(0.1);
-        
+        private NormalizedAverageTrueRange _natr;
+
         public DateTime _startDate { get; private set; }
         public DateTime _endDate { get; private set; }
         public string _name { get; set; }
@@ -65,11 +68,14 @@ namespace QuantConnect.Algorithm.CSharp
             SetStartDate(_startDate);  //Set Start Date
             SetEndDate(_endDate);    //Set End Date
             SetCash(1000000);
+            SetTimeZone(DateTimeZone.Utc);
 
             _xbtusd = AddCrypto("XBTUSD", Resolution.Tick, Market.GDAX);
-            Securities["XBTUSD"].FeeModel = new RelativeFeeTransactionModel(new decimal(-0.0025));
+            Securities["XBTUSD"].FeeModel = new XBTUSDFeeTransactionModel();
             
             _xbtusd.SetMarginModel(new SecurityMarginModel());
+
+            // _natr = NATR(_xbtusd.Symbol, 20, Resolution.Second);
         }
 
         public override void OnData(Slice data)
