@@ -28,12 +28,15 @@ let getData = (fileName: string = `backtest.json`): Promise<Array<DataRow>> =>
     })
 
     res = 0
-    tradeBars.forEach(tradeBar => {
+    let atr14 = 0
+    tradeBars.forEach((tradeBar, i) => {
       let tradeBarTimetamp = moment(tradeBar.date).valueOf()
       let backtestDataPoint = backtestDataPointsHash[`${tradeBarTimetamp}`]
 
       tradeBar.backtestValue = backtestDataPoint ? backtestDataPoint.Value : 0
       tradeBar.backtestResult = backtestDataPoint ? backtestDataPoint.res : res
+      tradeBar.atr14 = atr14 + getBarHeight(tradeBar) / 14 - getBarHeight(tradeBars[i - 14]) / 14
+      atr14 = tradeBar.atr14
       if(backtestDataPoint) res = backtestDataPoint.res
     })
 
@@ -71,6 +74,10 @@ let getTradeBarsForDate = (date: string) =>
   })))
 
 
-// export let getMinDate = (dates: Array<string>) => moment(Math.min(dates.map(date => moment(date).valueOf()))).format(FORMAT)
+let getBarHeight = (tradeBar) => {
+  if(!tradeBar) return 0
+  let {high, low} = tradeBar
+  return high - low
+}
 
 export default getData
