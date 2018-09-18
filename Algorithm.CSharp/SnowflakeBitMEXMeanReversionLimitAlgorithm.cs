@@ -46,6 +46,7 @@ namespace QuantConnect.Algorithm.CSharp
         private Signal _lastSignal = new Signal{Time = DateTime.Now, Type = EXIT};
         private static readonly decimal MIN_MEAN_REVERSION_THRESHOLD = new decimal(0.002);
         private static readonly decimal MAX_MEAN_REVERSION_THRESHOLD = new decimal(0.02);
+        private static readonly decimal MAX_VOLATILITY = 10;
         private Crypto _xbtusd;
         private const int MINUTES = 1;
         private decimal bidPrice = 0;
@@ -53,7 +54,8 @@ namespace QuantConnect.Algorithm.CSharp
         private List<Quote> _quotes = new List<Quote>();
         private OrderTicket _orderticket;
         private static readonly decimal LEVERAGE = new decimal(0.1);
-        private NormalizedAverageTrueRange _natr;
+        private AverageTrueRange _natr;
+        private DateTime _resetDate = DateTime.MinValue;
 
         public DateTime _startDate { get; private set; }
         public DateTime _endDate { get; private set; }
@@ -71,11 +73,11 @@ namespace QuantConnect.Algorithm.CSharp
             SetTimeZone(DateTimeZone.Utc);
 
             _xbtusd = AddCrypto("XBTUSD", Resolution.Tick, Market.GDAX);
-            Securities["XBTUSD"].FeeModel = new XBTUSDFeeTransactionModel();
+            // Securities["XBTUSD"].FeeModel = new XBTUSDFeeTransactionModel();
             
             _xbtusd.SetMarginModel(new SecurityMarginModel());
 
-            // _natr = NATR(_xbtusd.Symbol, 20, Resolution.Second);
+            _natr = ATR(_xbtusd.Symbol, 20, MovingAverageType.Simple, Resolution.Second);
         }
 
         public override void OnData(Slice data)
@@ -89,7 +91,22 @@ namespace QuantConnect.Algorithm.CSharp
             var quote = new Quote {Time = data.Time, BidPrice = tick.BidPrice, AskPrice = tick.AskPrice, MidPrice = (tick.BidPrice + tick.AskPrice)/ 2};
             _quotes.Add(quote);
             _quotes.RemoveAll(q => (data.Time - q.Time).TotalMinutes > MINUTES);
+            
             if (_quotes.IsNullOrEmpty()) return;
+            
+            // high volatility fallback
+            // Debug($"{data.Time} _atr.Current.Value: {_natr.Current.Value}");
+            /*
+            if (_natr.Current.Value > MAX_VOLATILITY) _resetDate = data.Time.AddMinutes(5);
+            if (_resetDate > data.Time)
+            {
+                var quantity = Portfolio[XBTUSD].Quantity;
+                CancelOrder();
+                if(quantity != 0) MarketOrder(_xbtusd.Symbol, -quantity);
+                return;
+            }
+            */
+            
             var firstQuote = _quotes.First();
             var rateOfChange = quote.MidPrice / firstQuote.MidPrice;
             
@@ -220,25 +237,45 @@ namespace Snowflake
 }
 
 /*
- *
- *
- * 20180915 08:09:55.359 Trace:: STATISTICS:: Total Trades 52
-20180915 08:09:55.361 Trace:: STATISTICS:: Average Win 0.15%
-20180915 08:09:55.361 Trace:: STATISTICS:: Average Loss -0.27%
-20180915 08:09:55.362 Trace:: STATISTICS:: Compounding Annual Return 34.387%
-20180915 08:09:55.362 Trace:: STATISTICS:: Drawdown 0.600%
-20180915 08:09:55.362 Trace:: STATISTICS:: Expectancy 0.011
-20180915 08:09:55.362 Trace:: STATISTICS:: Net Profit 0.068%
-20180915 08:09:55.362 Trace:: STATISTICS:: Sharpe Ratio 0
-20180915 08:09:55.362 Trace:: STATISTICS:: Loss Rate 35%
-20180915 08:09:55.362 Trace:: STATISTICS:: Win Rate 65%
-20180915 08:09:55.362 Trace:: STATISTICS:: Profit-Loss Ratio 0.55
-20180915 08:09:55.362 Trace:: STATISTICS:: Alpha 0
-20180915 08:09:55.363 Trace:: STATISTICS:: Beta 0
-20180915 08:09:55.363 Trace:: STATISTICS:: Annual Standard Deviation 0
-20180915 08:09:55.363 Trace:: STATISTICS:: Annual Variance 0
-20180915 08:09:55.363 Trace:: STATISTICS:: Information Ratio 0
-20180915 08:09:55.363 Trace:: STATISTICS:: Tracking Error 0
-20180915 08:09:55.363 Trace:: STATISTICS:: Treynor Ratio 0
-20180915 08:09:55.363 Trace:: STATISTICS:: Total Fees $0.00
+20180918 20:28:13.803 Trace:: STATISTICS:: Total Trades 1170
+20180918 20:28:13.803 Trace:: STATISTICS:: Average Win 0.01%
+20180918 20:28:13.803 Trace:: STATISTICS:: Average Loss -0.02%
+20180918 20:28:13.803 Trace:: STATISTICS:: Compounding Annual Return -48.591%
+20180918 20:28:13.803 Trace:: STATISTICS:: Drawdown 2.700%
+20180918 20:28:13.803 Trace:: STATISTICS:: Expectancy -0.270
+20180918 20:28:13.803 Trace:: STATISTICS:: Net Profit -2.697%
+20180918 20:28:13.803 Trace:: STATISTICS:: Sharpe Ratio -21.394
+20180918 20:28:13.803 Trace:: STATISTICS:: Loss Rate 54%
+20180918 20:28:13.803 Trace:: STATISTICS:: Win Rate 46%
+20180918 20:28:13.803 Trace:: STATISTICS:: Profit-Loss Ratio 0.59
+20180918 20:28:13.803 Trace:: STATISTICS:: Alpha -0.538
+20180918 20:28:13.803 Trace:: STATISTICS:: Beta 6.127
+20180918 20:28:13.803 Trace:: STATISTICS:: Annual Standard Deviation 0.021
+20180918 20:28:13.803 Trace:: STATISTICS:: Annual Variance 0
+20180918 20:28:13.803 Trace:: STATISTICS:: Information Ratio -22.008
+20180918 20:28:13.803 Trace:: STATISTICS:: Tracking Error 0.021
+20180918 20:28:13.803 Trace:: STATISTICS:: Treynor Ratio -0.075
+20180918 20:28:13.803 Trace:: STATISTICS:: Total Fees $0.00
+
+
+20180918 22:14:11.903 Trace:: STATISTICS:: Total Trades 1320
+20180918 22:14:11.904 Trace:: STATISTICS:: Average Win 0.01%
+20180918 22:14:11.904 Trace:: STATISTICS:: Average Loss -0.02%
+20180918 22:14:11.904 Trace:: STATISTICS:: Compounding Annual Return -50.004%
+20180918 22:14:11.904 Trace:: STATISTICS:: Drawdown 2.900%
+20180918 22:14:11.904 Trace:: STATISTICS:: Expectancy -0.204
+20180918 22:14:11.904 Trace:: STATISTICS:: Net Profit -2.809%
+20180918 22:14:11.904 Trace:: STATISTICS:: Sharpe Ratio -11.644
+20180918 22:14:11.904 Trace:: STATISTICS:: Loss Rate 52%
+20180918 22:14:11.904 Trace:: STATISTICS:: Win Rate 48%
+20180918 22:14:11.904 Trace:: STATISTICS:: Profit-Loss Ratio 0.65
+20180918 22:14:11.904 Trace:: STATISTICS:: Alpha -0.43
+20180918 22:14:11.904 Trace:: STATISTICS:: Beta -3.715
+20180918 22:14:11.904 Trace:: STATISTICS:: Annual Standard Deviation 0.041
+20180918 22:14:11.905 Trace:: STATISTICS:: Annual Variance 0.002
+20180918 22:14:11.905 Trace:: STATISTICS:: Information Ratio -11.957
+20180918 22:14:11.905 Trace:: STATISTICS:: Tracking Error 0.041
+20180918 22:14:11.906 Trace:: STATISTICS:: Treynor Ratio 0.129
+20180918 22:14:11.906 Trace:: STATISTICS:: Total Fees $0.00
+
  */

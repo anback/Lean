@@ -14,6 +14,7 @@
 */
 
 using System;
+using System.Diagnostics;
 using QuantConnect.Orders;
 
 namespace QuantConnect.Securities
@@ -23,7 +24,7 @@ namespace QuantConnect.Securities
     /// </summary>
     public sealed class XBTUSDFeeTransactionModel : SecurityTransactionModel
     {
-        private const decimal _fee = 0.0075m;
+        private const decimal _fee = 0.00075m;
 
         /// <inheritdoc />
         /// <summary>
@@ -34,7 +35,12 @@ namespace QuantConnect.Securities
         /// <returns>The cost of the order in units of the account currency</returns>
         public override decimal GetOrderFee(Security security, Order order)
         {
-            if (order.Type == OrderType.Market) return order.Price * order.Quantity * _fee;
+            Console.WriteLine($"{order.Type.ToString()}");
+            if (order.Type == OrderType.Market)
+            {
+
+                return 7000 * order.Quantity * _fee;
+            };
             return 0;
         }
     }
