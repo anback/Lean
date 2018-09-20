@@ -38,7 +38,7 @@ let mapQuote = ([timestamp, symbol, bidSize, bidPrice, askPrice, askSize]) =>
 
 // input: 2018-01-22D00:00:02.364320000,XBTUSD,Sell,20,11559.5,MinusTick,046e0b31-267d-007b-179e-aa8e8fd31c69,173020,0.0017302,20
 let mapTrade = ([timestamp, symbol, side, amount, price, tickType, matchId, numb1, numb2]) =>
-  [moment(timestamp).valueOf() - moment(timestamp).startOf('day').valueOf(), price, amount]
+  [moment(timestamp).valueOf() - moment(timestamp).startOf('day').valueOf(), price, amount, side]
 
 if (!fs.existsSync('../data/crypto/gdax')) fs.mkdirSync('../data/crypto/gdax')
 if (!fs.existsSync('../data/crypto/gdax/tick')) fs.mkdirSync('../data/crypto/gdax/tick')

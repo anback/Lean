@@ -98,7 +98,7 @@ class CandleStickChartWithZoomPan extends React.Component {
 				xExtents={xExtents}
 				xAccessor={xAccessor}
 				displayXAccessor={displayXAccessor}>
-				{this.getCharts().map(({height, getComponent}, i, array) => getComponent({height, top: array.filter((x, j) => j >= i).reduce((a,b) => a + b.height, 0)}))}
+				{this.getCharts().map(({height, getComponent}, i, array) => getComponent({height, id: i+1, top: array.filter((x, j) => j >= i).reduce((a,b) => a + b.height, 0)}))}
 				<CrossHairCursor />
 			</ChartCanvas>
 		);
@@ -122,7 +122,7 @@ class CandleStickChartWithZoomPan extends React.Component {
 
 		return [{
 			height: 400,
-			getComponent: ({height}) => <Chart id={1}
+			getComponent: ({height, id}) => <Chart id={id}
 				yExtents={d => [d.high, d.low]}
 				height={height}>
 				<YAxis axisAt="right" orient="right" ticks={5} zoomEnabled={zoomEvent} {...yGrid} />
@@ -141,8 +141,8 @@ class CandleStickChartWithZoomPan extends React.Component {
 		},
 		{
 			height: 150,
-			getComponent: ({height, top}) => {
-				return <Chart id={2} yExtents={d => d.volume} height={height} origin={(w, h) => [0, h - top]}>
+			getComponent: ({height, top, id}) => {
+				return <Chart id={id} yExtents={d => d.volume} height={height} origin={(w, h) => [0, h - top]}>
 					<YAxis axisAt="left" orient="left" ticks={5} tickFormat={format(".2s")} zoomEnabled={zoomEvent} />
 
 					<MouseCoordinateY at="left" orient="left" displayFormat={format(".4s")} />
@@ -153,7 +153,7 @@ class CandleStickChartWithZoomPan extends React.Component {
 		},
 		{
 			height: 150,
-			getComponent : ({height, top}) => <Chart id={3} yExtents={d => d.atr14} height={height} origin={(w, h) => [0, h - top]}>
+			getComponent : ({height, top, id}) => <Chart id={id} yExtents={d => d.atr14} height={height} origin={(w, h) => [0, h - top]}>
 				<XAxis axisAt="bottom" orient="bottom" zoomEnabled={zoomEvent} {...xGrid} />
 				<YAxis axisAt="left" orient="left" ticks={5} tickFormat={format(".2s")} zoomEnabled={zoomEvent} />
 
@@ -165,7 +165,19 @@ class CandleStickChartWithZoomPan extends React.Component {
 		},
 		{
 			height: 150,
-			getComponent: ({height, top}) => <Chart id={4} yExtents={(d: DataRow) => Math.sign(Math.random() - 0.5) * 200} height={height} origin={(w, h) => [0, h - top]}>
+			getComponent : ({height, top, id}) => <Chart id={id} yExtents={d => d.orderflow} height={height} origin={(w, h) => [0, h - top]}>
+				<XAxis axisAt="bottom" orient="bottom" zoomEnabled={zoomEvent} {...xGrid} />
+				<YAxis axisAt="left" orient="left" ticks={5} tickFormat={format(".2s")} zoomEnabled={zoomEvent} />
+
+				<MouseCoordinateX at="bottom" orient="bottom" displayFormat={timeFormat("%Y-%m-%d %H:%M:%S")} />
+				<MouseCoordinateY at="left" orient="left" displayFormat={format(".4s")} />
+
+				<LineSeries yAccessor={d => d.orderflow} />
+			</Chart>
+		},
+		{
+			height: 150,
+			getComponent: ({height, top, id}) => <Chart id={id} yExtents={(d: DataRow) => Math.sign(Math.random() - 0.5) * 200} height={height} origin={(w, h) => [0, h - top]}>
 				<YAxis axisAt="left" orient="left" ticks={5} tickFormat={format(".2s")} zoomEnabled={zoomEvent} />
 
 				<MouseCoordinateX at="bottom" orient="bottom" displayFormat={timeFormat("%Y-%m-%d %H:%M:%S")} />
@@ -179,7 +191,7 @@ class CandleStickChartWithZoomPan extends React.Component {
 		},
 		{
 			height: 150,
-			getComponent : ({height, top}) => <Chart id={5} yExtents={(d: DataRow) => [0, -25000]} height={height} origin={(w, h) => [0, h - top]}>
+			getComponent : ({height, top, id}) => <Chart id={id} yExtents={(d: DataRow) => [0, -25000]} height={height} origin={(w, h) => [0, h - top]}>
 				<XAxis axisAt="bottom" orient="bottom" zoomEnabled={zoomEvent} {...xGrid} />
 				<YAxis axisAt="left" orient="left" ticks={5} tickFormat={format(".2s")} zoomEnabled={zoomEvent} />
 

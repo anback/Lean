@@ -12,7 +12,7 @@ export default class {
   bars = {}
   constructor(resolution: Resolution) { this.resolution = resolution }
 
-  onNewTrade = ([time, price, volume]: Array<number>, {type, date}: Object) => {
+  onNewTrade = ([time, price, volume, side]: Array<number>, {type, date}: Object) => {
 
     if(!time) return
     if(!price) return
@@ -22,7 +22,7 @@ export default class {
     if(time === '') return
 
     let key = this.getKey(time)
-    let bar = this.bars[key] || {time: 0, open: undefined, high: 0, low: SOMETHING_HIGH, close: undefined, volume: 0}
+    let bar = this.bars[key] || {time: 0, open: undefined, high: 0, low: SOMETHING_HIGH, close: undefined, volume: 0, orderflow: 0}
 
     price = parseFloat(price)
     volume = parseFloat(volume)
@@ -32,7 +32,8 @@ export default class {
     bar.high = Math.max(bar.high, price)
     bar.low = Math.min(bar.low, price)
     bar.close = price
-    bar.volume +=  volume
+    bar.volume += volume
+    bar.orderflow +=  side === 'Buy' ? volume : -volume
 
     if(!bar.open) console.log(price, volume, date, type)
     if(!bar.close) console.log(price, volume, date, type)
@@ -42,5 +43,5 @@ export default class {
 
   getKey = (time: number):number => Math.floor(time / this.resolution.value) * this.resolution.value
 
-  getBars = (): Array<Array<number>> => Object.keys(this.bars).map(key => this.bars[key]).map(bar => [bar.time, bar.open, bar.high, bar.low, bar.close, bar.volume])
+  getBars = (): Array<Array<number>> => Object.keys(this.bars).map(key => this.bars[key]).map(bar => [bar.time, bar.open, bar.high, bar.low, bar.close, bar.volume, bar.orderflow])
 }
