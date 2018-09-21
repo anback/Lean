@@ -15,6 +15,7 @@
 
 using System;
 using System.Globalization;
+using QLNet;
 using QuantConnect.Logging;
 using QuantConnect.Util;
 
@@ -262,11 +263,12 @@ namespace QuantConnect.Data.Market
 
                         if (TickType == TickType.Trade)
                         {
-                            var csv = line.ToCsv(3);
+                            var csv = line.ToCsv();
                             Time = date.Date.AddMilliseconds(csv[0].ToInt64())
                                 .ConvertTo(config.DataTimeZone, config.ExchangeTimeZone);
                             Value = csv[1].ToDecimal();
                             Quantity = csv[2].ToDecimal();
+                            SaleCondition = csv[3];
                         }
 
                         if (TickType == TickType.Quote)

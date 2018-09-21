@@ -42,7 +42,6 @@ namespace QuantConnect.Algorithm.CSharp
     /// <meta name="tag" content="trading and orders" />
     public class SnowflakeBitMEXMeanReversionLimitAlgorithm : QCAlgorithm, ISnowflakeAlgorithm
     {
-        private bool _enableMarketOrderOnHighVolatility = false;
         private const string ENTRY = "ENTRY"; 
         private const string EXIT = "EXIT";
         private const string XBTUSD = "XBTUSD";
@@ -71,7 +70,7 @@ namespace QuantConnect.Algorithm.CSharp
 
         public override void Initialize()
         {
-            _startDate = new DateTime(2018, 9, 18);
+            _startDate = new DateTime(2018, 9, 1);
             _endDate = new DateTime(2018, 9, 18);
             _name = "SnowflakeBitMEXMeanReversionLimitAlgorithmTrue";
             SetStartDate(_startDate);  //Set Start Date
@@ -98,10 +97,10 @@ namespace QuantConnect.Algorithm.CSharp
             if (_quotes.IsNullOrEmpty()) return;
 
             // var volatility = _trades.GroupBy(t => t.Time.Second).Average(trades => trades.Max(t => t.Price) - trades.Min(t => t.Price));
-            // if (_enableMarketOrderOnHighVolatility && volatility > MAX_VOLATILITY) _resetDate = data.Time.AddMinutes(5);
+            // if (volatility > MAX_VOLATILITY) _resetDate = data.Time.AddMinutes(5);
             
-            var orderflow = _trades.Sum(t => t.Quantity);
-            if (_enableMarketOrderOnHighVolatility && Math.Abs(orderflow) > MaxOrderflow) _resetDate = _resetDate = data.Time.AddMinutes(5);
+            var orderflow = _trades.Sum(t => t.Side == "Buy" ? t.Quantity : -t.Quantity );
+            if (Math.Abs(orderflow) > MaxOrderflow) _resetDate = _resetDate = data.Time.AddMinutes(5);
             
             if (_resetDate > data.Time)
             {
@@ -148,7 +147,7 @@ namespace QuantConnect.Algorithm.CSharp
             if (ticks.IsNullOrEmpty()) return null;
             var tick = ticks.Last();
             if (tick.LastPrice == 0) return null;
-            var trade = new Trade {Time = data.Time, Price = tick.LastPrice, Quantity = tick.Quantity};
+            var trade = new Trade {Time = data.Time, Price = tick.LastPrice, Quantity = tick.Quantity, Side = tick.SaleCondition};
             _trades.Add(trade);
             _trades.RemoveAll(q => (data.Time - q.Time).TotalSeconds > WINDOW_LENGTH);
             return trade;
@@ -244,6 +243,7 @@ namespace QuantConnect.Algorithm.CSharp
             public DateTime Time { get; set; }
             public decimal Price { get; set; }
             public decimal Quantity { get; set; }
+            public string Side { get; set; }
         }
         
         private class Signal

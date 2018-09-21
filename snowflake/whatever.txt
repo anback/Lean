@@ -25,3 +25,27 @@ vs
 {"close":6404.5,"date":"2018-09-11T04:00:33Z","high":6420,"low":6404.5,"open":6420,"absoluteChange":null,"dividend":"","split":"","volume":1041150,"backtestValue":-915,"backtestResult":-25834.5,"atr14":8.57142857142871}
 
 5
+
+{"close":6299,"date":"2018-09-09T11:30:24Z","high":6299,"low":6278.5,"open":6298,"absoluteChange":null,"dividend":"","split":"","volume":481391,"backtestValue":-1440,"backtestResult":-16686,"atr14":8.714285714285777}
+{"close":6266,"date":"2018-09-10T00:04:33Z","high":6322,"low":6266,"open":6266,"absoluteChange":null,"dividend":"","split":"","volume":584468,"backtestValue":-1200,"backtestResult":-18231,"atr14":8.64285714285723}
+{"close":6325,"date":"2018-09-06T20:00:27Z","high":6346,"low":6325,"open":6337,"absoluteChange":null,"dividend":"","split":"","volume":691048,"backtestValue":-982.5,"backtestResult":-10263,"atr14":8.214285714285765}
+{"close":6495,"date":"2018-09-06T15:37:20Z","high":6495,"low":6495,"open":6495,"absoluteChange":null,"dividend":"","split":"","volume":2280,"backtestValue":-967.5,"backtestResult":-8973,"atr14":6.785714285714342}
+{"close":6413,"date":"2018-09-16T06:02:17Z","high":6431.5,"low":6413,"open":6414.5,"absoluteChange":null,"dividend":"","split":"","volume":715583,"backtestValue":-885,"backtestResult":-25310,"atr14":6.214285714285914}
+{"close":6480,"date":"2018-09-13T11:37:15Z","high":6480,"low":6475,"open":6480,"absoluteChange":null,"dividend":"","split":"","volume":45805,"backtestValue":-802.5,"backtestResult":-22536,"atr14":7.714285714285879}
+{"close":6800,"date":"2018-09-06T01:44:43Z","high":6830,"low":6800,"open":6801,"absoluteChange":null,"dividend":"","split":"","volume":540720,"backtestValue":-784,"backtestResult":-5465.5,"atr14":7.607142857142899}
+{"close":6300,"date":"2018-09-06T11:35:57Z","high":6307,"low":6300,"open":6300,"absoluteChange":null,"dividend":"","split":"","volume":254135,"backtestValue":-780,"backtestResult":-8133,"atr14":6.178571428571491}
+{"close":6352,"date":"2018-09-08T14:10:07Z","high":6352,"low":6351,"open":6351,"absoluteChange":null,"dividend":"","split":"","volume":31158,"backtestValue":-720,"backtestResult":-14005.5,"atr14":5.535714285714366}
+{"close":6386,"date":"2018-09-06T02:50:59Z","high":6386,"low":6371,"open":6375,"absoluteChange":null,"dividend":"","split":"","volume":388721,"backtestValue":-682.5,"backtestResult":-6033,"atr14":5.892857142857189}
+
+
+orderflow 5M
+{"close":6152,"date":"2018-09-08T19:48:27Z","high":6187,"low":6152,"open":6155.5,"absoluteChange":null,"dividend":"","split":"","volume":7212428,"orderflow":-5076793,"backtestValue":-3127.5,"backtestResult":-21978,"atr14":null}
+{"close":7171,"date":"2018-09-05T11:54:45Z","high":7171,"low":7142.5,"open":7145,"absoluteChange":null,"dividend":"","split":"","volume":1310754,"orderflow":-4917529,"backtestValue":-1807,"backtestResult":-4930,"atr14":null}
+{"close":6950,"date":"2018-09-05T12:51:41Z","high":6960.5,"low":6943,"open":6943,"absoluteChange":null,"dividend":"","split":"","volume":60606,"orderflow":-6815912,"backtestValue":-1618.5,"backtestResult":-8378.5,"atr14":null}
+{"close":6670,"date":"2018-09-06T01:46:32Z","high":6694.5,"low":6670,"open":6674,"absoluteChange":null,"dividend":"","split":"","volume":5476200,"orderflow":-4544434,"backtestValue":-1512,"backtestResult":-12606.5,"atr14":null}
+{"close":6299,"date":"2018-09-09T11:30:24Z","high":6299,"low":6278.5,"open":6298,"absoluteChange":null,"dividend":"","split":"","volume":481391,"orderflow":12202835,"backtestValue":-1440,"backtestResult":-24265.5,"atr14":null}
+{"close":6338.5,"date":"2018-09-10T03:44:22Z","high":6385,"low":6338.5,"open":6380,"absoluteChange":null,"dividend":"","split":"","volume":682530,"orderflow":6188330,"backtestValue":-1357.5,"backtestResult":-29110.5,"atr14":null}
+{"close":6439,"date":"2018-09-09T11:31:27Z","high":6439,"low":6371.5,"open":6439,"absoluteChange":null,"dividend":"","split":"","volume":232233,"orderflow":4597973,"backtestValue":-1290,"backtestResult":-25555.5,"atr14":null}
+{"close":6768,"date":"2018-09-06T01:45:23Z","high":6785,"low":6768,"open":6770,"absoluteChange":null,"dividend":"","split":"","volume":1440418,"orderflow":-12860531,"backtestValue":-1162,"backtestResult":-11094.5,"atr14":null}
+{"close":6410,"date":"2018-09-14T10:55:36Z","high":6436,"low":6410,"open":6420,"absoluteChange":null,"dividend":"","split":"","volume":1174911,"orderflow":-5977273,"backtestValue":-1120,"backtestResult":-31307,"atr14":null}
+{"close":6170,"date":"2018-09-11T16:58:30Z","high":6170,"low":6170,"open":6170,"absoluteChange":null,"dividend":"","split":"","volume":3000,"orderflow":-6418653,"backtestValue":-1080,"backtestResult":-30648,"atr14":null}
