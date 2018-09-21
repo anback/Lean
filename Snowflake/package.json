@@ -26,12 +26,13 @@
     "request": "^2.88.0",
     "request-promise": "^4.2.2",
     "shortid": "^2.2.8",
+    "split": "^1.0.1",
     "stream-progressbar": "^1.1.1"
   },
   "devDependencies": {
     "babel-cli": "^6.0.0",
-    "react-scripts": "^1.0.17",
-    "eslint-config-react-app": "^2.1.0"
+    "eslint-config-react-app": "^2.1.0",
+    "react-scripts": "^1.0.17"
   },
   "scripts": {
     "babel": "BABEL_ENV=development babel src/server -d dest/server",

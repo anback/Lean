@@ -8,6 +8,7 @@ import archiver from 'archiver'
 import progress from 'stream-progressbar'
 import TradeAggregator from './TradeAggregator'
 import {ONE_SECOND, ONE_MINUTE, ONE_HOUR, ONE_DAY} from './Consts'
+import split from 'split'
 
 const FORMAT = 'YYYYMMDD'
 const QUOTE = 'quote'
@@ -21,7 +22,7 @@ const RESOLUTIONS = [
   {name: 'daily', value: ONE_DAY}
 ]
 
-const TICK_RESOLUTION = {name: 'tick', value: 0}
+const TICK_RESOLUTION = {name: TICK, value: 0}
 const ALL_RESOLUTIONS = [...RESOLUTIONS, TICK_RESOLUTION]
 
 let getUri = ({date, type}) => `https://s3-eu-west-1.amazonaws.com/public.bitmex.com/data/${type}/${date}.csv.gz` // 20180101
@@ -71,27 +72,18 @@ process.on('SIGINT', e => {
   process.exit(1)
 })
 
-let prefixes = {[TRADE]: {}, [QUOTE]: {}}
 let createTransform = (options) => new Transform({
-    transform: function transformer(chunk, encoding, callback) {
-        let {type, date, aggregators} = options
-        let text = chunk.toString('utf8')
-        text = (prefixes[options.type][date] || '') + text
-        let rows = text.split('\n')
-        prefixes[options.type][date] = rows.pop()
+    transform: function transformer(line, encoding, callback) {
+        let {type, aggregators} = options
+        line = line.toString('utf8')
+        let data = line.split(',')
+        if(data[1] !== 'XBTUSD') return callback()
+        data[0] = data[0].replace('D', 'T')
+        if(type === TRADE) data = mapTrade(data)
+        if(type === QUOTE) data = mapQuote(data)
 
-        rows =
-        rows.map(row => {
-          let data = row.split(',')
-          if(data[1] !== 'XBTUSD') return
-          data[0] = data[0].replace('D', 'T')
-          if(type === TRADE) return mapTrade(data)
-          if(type === QUOTE) return mapQuote(data)
-        })
-        .filter(r => !!r)
-
-        if(type === TRADE) rows.forEach(trade => aggregators.forEach((aggregator) => aggregator.onNewTrade(trade, options)))
-        this.push(rows.map(row => row.join(',')).join('\n'))
+        if(type === TRADE) aggregators.forEach((aggregator) => aggregator.onNewTrade(data, options))
+        this.push(data.join(',') + '\n')
         callback()
     }
   });
@@ -99,7 +91,7 @@ let createTransform = (options) => new Transform({
 [TRADE, QUOTE].forEach(type =>
   dates
   .filter(date => !fs.existsSync(getPath({date, type, resolution: TICK_RESOLUTION})))
-  .map(date => {
+  .forEach(date => {
     let options = {date, type, resolution: TICK_RESOLUTION}
     let path = getPath({date, type, resolution: TICK_RESOLUTION})
     let aggregators = RESOLUTIONS.map(resolution => new TradeAggregator(resolution))
@@ -113,6 +105,7 @@ let createTransform = (options) => new Transform({
     })
     .pipe(progress(`${path} [:bar] :rate/bps :percent :etas`))
     .pipe(zlib.createGunzip())
+    .pipe(split())
     .pipe(createTransform({date, type, aggregators}))
 
     var archive = archiver('zip',   {zlib: { level: 9 } });
@@ -120,6 +113,9 @@ let createTransform = (options) => new Transform({
     archive.pipe(output)
     archive.append(stream, { name: `${date}.csv` })
     archive.finalize()
+
+    output.on('error', e => onError(e, options))
+    stream.on('error', e => onError(e, options))
 
     if(type === QUOTE) return
 
@@ -131,7 +127,4 @@ let createTransform = (options) => new Transform({
       archive.append(text, { name: `${date}.csv` })
       archive.finalize()
     }))
-
-    output.on('error', e => onError(e, options))
-    stream.on('error', e => onError(e, options))
   }))
