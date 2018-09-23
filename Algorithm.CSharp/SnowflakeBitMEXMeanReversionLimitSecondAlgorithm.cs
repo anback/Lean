@@ -40,7 +40,7 @@ namespace QuantConnect.Algorithm.CSharp
     /// <meta name="tag" content="using data" />
     /// <meta name="tag" content="using quantconnect" />
     /// <meta name="tag" content="trading and orders" />
-    public class SnowflakeBitMEXMeanReversionLimitAlgorithm : QCAlgorithm, ISnowflakeAlgorithm
+    public class SnowflakeBitMEXMeanReversionLimitSecondAlgorithm : QCAlgorithm, ISnowflakeAlgorithm
     {
         private const string ENTRY = "ENTRY"; 
         private const string EXIT = "EXIT";
@@ -56,8 +56,8 @@ namespace QuantConnect.Algorithm.CSharp
         private const int MINUTES = 1;
         private decimal bidPrice = 0;
         private decimal askPrice = 0;
-        private List<Quote> _quotes = new List<Quote>();
-        private List<Trade> _trades = new List<Trade>();
+        private List<QuoteBar> _quotes = new List<QuoteBar>();
+        private List<TradeBar> _trades = new List<TradeBar>();
         private OrderTicket _orderticket;
         private static readonly decimal LEVERAGE = new decimal(0.1);
         private AverageTrueRange _natr;
@@ -79,7 +79,7 @@ namespace QuantConnect.Algorithm.CSharp
             SetTimeZone(DateTimeZone.Utc);
             
             
-            _xbtusd = AddCrypto("XBTUSD", Resolution.Tick, Market.GDAX);
+            _xbtusd = AddCrypto("XBTUSD", Resolution.Second, Market.GDAX);
             
             _xbtusd.SetMarginModel(new SecurityMarginModel());
 
@@ -88,18 +88,14 @@ namespace QuantConnect.Algorithm.CSharp
 
         public override void OnData(Slice data)
         {   
-            if (data.Ticks["XBTUSD"].IsNullOrEmpty()) return;
             var quote = UpdateQuotes(data);
             var trade = UpdateTrades(data);
 
             if (quote == null) return;
             if (trade == null) return;
             if (_quotes.IsNullOrEmpty()) return;
-
-            // var volatility = _trades.GroupBy(t => t.Time.Second).Average(trades => trades.Max(t => t.Price) - trades.Min(t => t.Price));
-            // if (volatility > MAX_VOLATILITY) _resetDate = data.Time.AddMinutes(5);
             
-            var orderflow = _trades.Sum(t => t.Side == "Buy" ? t.Quantity : -t.Quantity );
+            var orderflow = _trades.Sum(t => t.Orderflow);
             if (Math.Abs(orderflow) > MaxOrderflow) _resetDate = _resetDate = data.Time.AddMinutes(5);
             
             if (_resetDate > data.Time)
@@ -116,7 +112,7 @@ namespace QuantConnect.Algorithm.CSharp
             
             
             var firstQuote = _quotes.First();
-            var rateOfChange = quote.MidPrice / firstQuote.MidPrice;
+            var rateOfChange = quote.High / firstQuote.Low;
             
             if (Portfolio.CashBook["XBT"].ConversionRate == 0) return;
             
@@ -128,42 +124,38 @@ namespace QuantConnect.Algorithm.CSharp
             if (Portfolio.Invested && _lastSignal.Type == ENTRY && _lastSignal.IsOld(data.Time))
             {
                 _lastSignal = new Signal {Time = data.Time, Type = EXIT, Quantity = -1 * _lastSignal.Quantity};
-                // Debug($"Closing {data.Time}");
+                Debug($"Closing {data.Time}");
             }
             
             if (!Portfolio.Invested && _lastSignal.Type == EXIT && isMeanReverting)
             {
-                _lastSignal = new Signal{Time = data.Time, Type = ENTRY, Quantity = -1 * Math.Sign(meanReversion) * Portfolio.Cash / quote.AskPrice * LEVERAGE};
+                _lastSignal = new Signal{Time = data.Time, Type = ENTRY, Quantity = -1 * Math.Sign(meanReversion) * Portfolio.Cash / quote.Bid.Close * LEVERAGE};
                 var side = _lastSignal.Quantity > 0 ? OrderDirection.Buy : OrderDirection.Sell;
-                // Debug($"{side} {data.Time} meanReversion {meanReversion} quote: {quote.Time} {quote.MidPrice} firstQuote: {firstQuote.Time} {firstQuote.MidPrice}");
+                Debug($"{side} {data.Time} meanReversion {meanReversion} quote: {quote.Time} {quote.Bid.Close} firstQuote: {firstQuote.Time} {firstQuote.Bid.Close}");
             }
 
             SyncOrders();
         }
 
-        private Trade UpdateTrades(Slice data)
+        private TradeBar UpdateTrades(Slice data)
         {
-            var ticks = data.Ticks["XBTUSD"].Where(t => t.TickType == TickType.Trade);
-            if (ticks.IsNullOrEmpty()) return null;
-            var tick = ticks.Last();
-            if (tick.LastPrice == 0) return null;
-            var trade = new Trade {Time = data.Time, Price = tick.LastPrice, Quantity = tick.Quantity, Side = tick.SaleCondition};
-            _trades.Add(trade);
+            var bar = data.Bars["XBTUSD"];
+            if (bar == null) return null;
+            if (bar.Close == 0) return null;
+            _trades.Add(bar);
             _trades.RemoveAll(q => (data.Time - q.Time).TotalSeconds > WINDOW_LENGTH);
-            return trade;
+            return bar;
         }
 
-        private Quote UpdateQuotes(Slice data)
+        private QuoteBar UpdateQuotes(Slice data)
         {
-            var ticks = data.Ticks["XBTUSD"].Where(t => t.TickType == TickType.Quote);
-            if (ticks.IsNullOrEmpty()) return null;
-            var tick = ticks.Last();
-            if (tick.BidPrice == 0) return null;
-            if (tick.AskPrice == 0) return null;
-            var quote = new Quote {Time = data.Time, BidPrice = tick.BidPrice, AskPrice = tick.AskPrice, MidPrice = (tick.BidPrice + tick.AskPrice)/ 2};
-            _quotes.Add(quote);
+            var bar = data.QuoteBars["XBTUSD"];
+            if (bar == null) return null;
+            if (bar.Bid.Close == 0) return null;
+            if (bar.Ask.Close == 0) return null;
+            _quotes.Add(bar);
             _quotes.RemoveAll(q => (data.Time - q.Time).TotalMinutes > MINUTES);
-            return quote;
+            return bar;
         }
 
         private void SyncOrders()
@@ -191,7 +183,7 @@ namespace QuantConnect.Algorithm.CSharp
         private void SyncOrder(decimal quantity)
         {
             var quote = _quotes.Last();
-            var price = quantity > 0 ? quote.AskPrice - TICK_SIZE : quote.BidPrice + TICK_SIZE;
+            var price = quantity > 0 ? quote.Ask.Close - TICK_SIZE : quote.Bid.Close + TICK_SIZE;
             
             if (_orderticket == null)
             {
@@ -256,65 +248,53 @@ namespace QuantConnect.Algorithm.CSharp
     }
 }
 
-namespace Snowflake
-{
-    public interface ISnowflakeAlgorithm : IAlgorithm
-    {
-        DateTime _startDate { get; }
-        DateTime _endDate { get; }
-        string _name { get; }
-    }
-    
-    public static class Common
-    {
-        public static void OnEndOfAlgorithm(ISnowflakeAlgorithm a)
-        {
-            var json = JsonConvert.SerializeObject(a.Portfolio.Transactions.TransactionRecord.ToArray());
-            const string format = "yyyyMMdd";
-            System.IO.File.WriteAllText($@"../../../snowflake/public/backtest.json", json);
-            System.IO.File.WriteAllText($@"../../../snowflake/public/backtest_{a._name}_{a._startDate.ToString(format)}_{a._endDate.ToString(format)}.json", json);
-            Process.Start("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "http://localhost:3000");
-        }
-    }
-
-}
-
 /*
  with private bool _enableMarketOrderOnHighVolatility = true;
   totalFees: 2563,431750
-20180923 09:53:03.394 Trace:: Engine.Run(): Exiting Algorithm Manager
-Ett nytt fönster skapades under den aktuella webbläsarsessionen.
-20180923 09:53:04.447 Trace:: Debug: Algorithm Id:(SnowflakeBitMEXMeanReversionLimitAlgorithm) completed in 50,20 seconds at 37k data points per second. Processing total of 1 843 004 data points.
-20180923 09:53:04.723 Trace:: STATISTICS:: Total Trades 26
-20180923 09:53:04.723 Trace:: STATISTICS:: Average Win 0.01%
-20180923 09:53:04.723 Trace:: STATISTICS:: Average Loss -0.01%
-20180923 09:53:04.723 Trace:: STATISTICS:: Compounding Annual Return 1.101%
-20180923 09:53:04.723 Trace:: STATISTICS:: Drawdown 0.000%
-20180923 09:53:04.723 Trace:: STATISTICS:: Expectancy 0.037
-20180923 09:53:04.723 Trace:: STATISTICS:: Net Profit 0.003%
-20180923 09:53:04.723 Trace:: STATISTICS:: Sharpe Ratio 0
-20180923 09:53:04.723 Trace:: STATISTICS:: Loss Rate 62%
-20180923 09:53:04.723 Trace:: STATISTICS:: Win Rate 38%
-20180923 09:53:04.723 Trace:: STATISTICS:: Profit-Loss Ratio 1.70
-20180923 09:53:04.724 Trace:: STATISTICS:: Alpha 0
-20180923 09:53:04.724 Trace:: STATISTICS:: Beta 0
-20180923 09:53:04.724 Trace:: STATISTICS:: Annual Standard Deviation 0
-20180923 09:53:04.724 Trace:: STATISTICS:: Annual Variance 0
-20180923 09:53:04.724 Trace:: STATISTICS:: Information Ratio 0
-20180923 09:53:04.724 Trace:: STATISTICS:: Tracking Error 0
-20180923 09:53:04.724 Trace:: STATISTICS:: Treynor Ratio 0
-20180923 09:53:04.724 Trace:: STATISTICS:: Total Fees $0.00
-20180923 09:53:04.724 Trace:: BacktestingResultHandler.SendAnalysisResult(): Processed final packet
-20180923 09:53:04.725 Trace:: FileSystemDataFeed.Exit(): Exit triggered.
-20180923 09:53:04.725 Trace:: BrokerageTransactionHandler.Run(): Ending Thread...
-20180923 09:53:04.726 Trace:: FileSystemDataFeed.Run(): Ending Thread... 
-20180923 09:53:04.750 Trace:: Debug: Your log was successfully created and can be retrieved from: /Users/andersback/Projects/lean/Launcher/bin/Debug/SnowflakeBitMEXMeanReversionLimitAlgorithm-log.txt
-20180923 09:53:04.751 Trace:: BacktestingResultHandler.Run(): Ending Thread...
-20180923 09:53:04.833 Trace:: Waiting for threads to exit...
-20180923 09:53:14.806 Trace:: Engine.Run(): Disconnecting from brokerage...
-20180923 09:53:14.807 Trace:: Engine.Run(): Disposing of setup handler...
-20180923 09:53:14.807 Trace:: Engine.Main(): Analysis Completed and Results Posted.
-20180923 09:53:14.807 Trace:: FileSystemDataFeed.Exit(): Exit triggered.
-Engine.Main(): Analysis Complete. Press any key to continue.
-
+20180919 11:42:49.621 Trace:: STATISTICS:: Total Trades 1342
+20180919 11:42:49.621 Trace:: STATISTICS:: Average Win 0.01%
+20180919 11:42:49.621 Trace:: STATISTICS:: Average Loss -0.02%
+20180919 11:42:49.621 Trace:: STATISTICS:: Compounding Annual Return -50.022%
+20180919 11:42:49.621 Trace:: STATISTICS:: Drawdown 3.400%
+20180919 11:42:49.621 Trace:: STATISTICS:: Expectancy -0.285
+20180919 11:42:49.621 Trace:: STATISTICS:: Net Profit -3.363%
+20180919 11:42:49.621 Trace:: STATISTICS:: Sharpe Ratio -17.698
+20180919 11:42:49.621 Trace:: STATISTICS:: Loss Rate 53%
+20180919 11:42:49.621 Trace:: STATISTICS:: Win Rate 47%
+20180919 11:42:49.621 Trace:: STATISTICS:: Profit-Loss Ratio 0.52
+20180919 11:42:49.621 Trace:: STATISTICS:: Alpha -0.626
+20180919 11:42:49.621 Trace:: STATISTICS:: Beta 11.359
+20180919 11:42:49.622 Trace:: STATISTICS:: Annual Standard Deviation 0.027
+20180919 11:42:49.622 Trace:: STATISTICS:: Annual Variance 0.001
+20180919 11:42:49.622 Trace:: STATISTICS:: Information Ratio -18.191
+20180919 11:42:49.622 Trace:: STATISTICS:: Tracking Error 0.027
+20180919 11:42:49.622 Trace:: STATISTICS:: Treynor Ratio -0.042
+ 
+ 14000 kr på 18 dagar, 
+ insator på 14 bitcoins a 800000 kr. Vad är det du satsade, du satsade som mest 5000 dollar på 15 robotar. Det är ungefär 75000 dollar och hade du brytt dig om 14000 kr, hmm ja och nej, troligen nejh, 
+ ok då är det här en bra ide. 
+ Slutsatsen blir att du ska försöka med denna strategi, eller satsa på en annan risk modell, 
+ */
+ 
+ /*
+  *
+  * 20180919 12:43:58.571 Trace:: STATISTICS:: Total Trades 1510
+20180919 12:43:58.571 Trace:: STATISTICS:: Average Win 0.01%
+20180919 12:43:58.571 Trace:: STATISTICS:: Average Loss -0.02%
+20180919 12:43:58.571 Trace:: STATISTICS:: Compounding Annual Return -47.562%
+20180919 12:43:58.571 Trace:: STATISTICS:: Drawdown 3.200%
+20180919 12:43:58.571 Trace:: STATISTICS:: Expectancy -0.208
+20180919 12:43:58.571 Trace:: STATISTICS:: Net Profit -3.133%
+20180919 12:43:58.571 Trace:: STATISTICS:: Sharpe Ratio -10.914
+20180919 12:43:58.571 Trace:: STATISTICS:: Loss Rate 52%
+20180919 12:43:58.571 Trace:: STATISTICS:: Win Rate 48%
+20180919 12:43:58.571 Trace:: STATISTICS:: Profit-Loss Ratio 0.64
+20180919 12:43:58.571 Trace:: STATISTICS:: Alpha -0.43
+20180919 12:43:58.571 Trace:: STATISTICS:: Beta -1.149
+20180919 12:43:58.571 Trace:: STATISTICS:: Annual Standard Deviation 0.041
+20180919 12:43:58.571 Trace:: STATISTICS:: Annual Variance 0.002
+20180919 12:43:58.572 Trace:: STATISTICS:: Information Ratio -11.234
+20180919 12:43:58.572 Trace:: STATISTICS:: Tracking Error 0.041
+20180919 12:43:58.572 Trace:: STATISTICS:: Treynor Ratio 0.387
+20180919 12:43:58.572 Trace:: STATISTICS:: Total Fees $0.00
   */

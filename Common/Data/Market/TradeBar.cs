@@ -39,6 +39,8 @@ namespace QuantConnect.Data.Market
         /// Volume:
         /// </summary>
         public virtual decimal Volume { get; set; }
+        
+        public virtual decimal Orderflow { get; set; }
 
         /// <summary>
         /// Opening price of the bar: Defined as the price at the start of the time period.
@@ -266,7 +268,7 @@ namespace QuantConnect.Data.Market
                 Period = config.Increment
             };
 
-            var csv = line.ToCsv(6);
+            var csv = line.ToCsv(7);
             if (config.Resolution == Resolution.Daily || config.Resolution == Resolution.Hour)
             {
                 // hourly and daily have different time format, and can use slow, robust c# parser.
@@ -283,6 +285,7 @@ namespace QuantConnect.Data.Market
             tradeBar.Low = config.GetNormalizedPrice(csv[3].ToDecimal()*_scaleFactor);
             tradeBar.Close = config.GetNormalizedPrice(csv[4].ToDecimal()*_scaleFactor);
             tradeBar.Volume = csv[5].ToDecimal();
+            tradeBar.Orderflow = csv[6].ToDecimal();
 
             return tradeBar;
         }
@@ -369,7 +372,8 @@ namespace QuantConnect.Data.Market
             tradeBar.Low = csv[3].ToDecimal();
             tradeBar.Close = csv[4].ToDecimal();
             tradeBar.Volume = csv[5].ToDecimal();
-
+            tradeBar.Orderflow = csv[6].ToDecimal();
+            
             return tradeBar;
         }
 

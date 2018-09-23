@@ -1,8 +1,6 @@
 // @flow
-import moment from 'moment'
-type Bar = {time: number, open:number, high:number,	low:number,	close:number,	volume:number}
+type Bar = {time: number, open:number, high:number,	low:number,	close:number,	volume:number, orderflow: number}
 
-const ONE_SECOND = 1000
 const TEN_MILLION = 10000000
 const SOMETHING_HIGH = TEN_MILLION
 
@@ -13,16 +11,10 @@ export default class {
   constructor(resolution: Resolution) { this.resolution = resolution }
 
   onNewTrade = ([time, price, volume, side]: Array<number>, {type, date}: Object) => {
-
-    if(!time) return
-    if(!price) return
-    if(!volume) return
-    if(volume === '') return
-    if(price === '') return
-    if(time === '') return
-
     let key = this.getKey(time)
-    let bar = this.bars[key] || {time: 0, open: undefined, high: 0, low: SOMETHING_HIGH, close: undefined, volume: 0, orderflow: 0}
+    let bar = this.bars[key] || {time: 0, open: 0, high: 0, low: SOMETHING_HIGH, close: 0, volume: 0, orderflow: 0}
+
+    bar = (bar: Bar)
 
     price = parseFloat(price)
     volume = parseFloat(volume)

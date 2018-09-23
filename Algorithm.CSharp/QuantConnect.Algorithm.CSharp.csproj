@@ -96,6 +96,7 @@
     <Compile Include="MeanVarianceOptimizationFrameworkAlgorithm.cs" />
     <Compile Include="Signal.cs" />
     <Compile Include="SnowflakeBitMEXMeanReversionLimitAlgorithm.cs" />
+    <Compile Include="SnowflakeBitMEXMeanReversionLimitSecondAlgorithm.cs" />
     <Compile Include="SnowflakeBitMEXMeanReversionMarketAlgorithm.cs" />
     <Compile Include="SnowflakeMeanReversionAlgorithm.cs" />
     <Compile Include="TiingoDailyDataAlgorithm.cs" />

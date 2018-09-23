@@ -6,6 +6,7 @@ import {Transform} from 'stream'
 import zlib from 'zlib'
 import archiver from 'archiver'
 import progress from 'stream-progressbar'
+import QuoteAggregator from './QuoteAggregator';
 import TradeAggregator from './TradeAggregator'
 import {ONE_SECOND, ONE_MINUTE, ONE_HOUR, ONE_DAY} from './Consts'
 import split from 'split'
@@ -72,9 +73,9 @@ process.on('SIGINT', e => {
   process.exit(1)
 })
 
-let createTransform = (options) => new Transform({
+let mapDataTransformFactory = (options) => new Transform({
     transform: function transformer(line, encoding, callback) {
-        let {type, aggregators} = options
+        let {type, tradeAggregators, quoteAggregators} = options
         line = line.toString('utf8')
         let data = line.split(',')
         if(data[1] !== 'XBTUSD') return callback()
@@ -82,19 +83,53 @@ let createTransform = (options) => new Transform({
         if(type === TRADE) data = mapTrade(data)
         if(type === QUOTE) data = mapQuote(data)
 
-        if(type === TRADE) aggregators.forEach((aggregator) => aggregator.onNewTrade(data, options))
+        if(type === TRADE) tradeAggregators.forEach((aggregator) => aggregator.onNewTrade(data, options))
+        if(type === QUOTE) quoteAggregators.forEach((aggregator) => aggregator.onNewTrade(data, options))
         this.push(data.join(',') + '\n')
         callback()
     }
   });
 
-[TRADE, QUOTE].forEach(type =>
+let aggregateDataTransformFactory = (options) => new Transform({
+    transform: function transformer(line, encoding, callback) {
+      let data
+      try {
+        let {type} = options
+        line = line.toString('utf8').replace('\n', '')
+        data = line.split(',')
+        data = data.map(str => !isNaN(str) ? parseFloat(str) : str) //try parse str
+
+        switch(true) {
+          case !this.data: this.data = data; return callback()
+          case type === TRADE && shouldAggregateTrade(data, this.data): this.data = aggregateTrade(data, this.data); return callback();
+          case type === QUOTE && shouldAggregateQuote(data, this.data): this.data = aggregateQuote(data, this.data); return callback();
+          default:
+            this.push(this.data.join(',') + '\n')
+            this.data = data
+            callback()
+        }
+      }
+      catch (e) {
+        console.log('data', data)
+        console.log('this.data', this.data)
+        throw e
+      }
+    }
+  });
+
+let shouldAggregateQuote = ([time, bidPrice, bidSize, askPrice, askSize], [_time, _bidPrice, _bidSize, _askPrice, _askSize]) => bidPrice === _bidPrice && askPrice === _askPrice
+let shouldAggregateTrade = ([time, price, amount, side], [_time, _price, _amount, _side]) => time === _time && side === _side && price === _price
+let aggregateTrade = ([time, price, amount, side], [_time, _price, _amount, _side]) => [_time, _price, amount + _amount, _side]
+let aggregateQuote = ([time, bidPrice, bidSize, askPrice, askSize], [_time, _bidPrice, _bidSize, _askPrice, _askSize]) => [_time, bidPrice, bidSize, askPrice, askSize]
+
+;[QUOTE, TRADE].forEach(type =>
   dates
   .filter(date => !fs.existsSync(getPath({date, type, resolution: TICK_RESOLUTION})))
   .forEach(date => {
     let options = {date, type, resolution: TICK_RESOLUTION}
     let path = getPath({date, type, resolution: TICK_RESOLUTION})
-    let aggregators = RESOLUTIONS.map(resolution => new TradeAggregator(resolution))
+    let tradeAggregators = RESOLUTIONS.map(resolution => new TradeAggregator(resolution))
+    let quoteAggregators = RESOLUTIONS.map(resolution => new QuoteAggregator(resolution))
 
     let uri = getUri({date, type})
     console.log(`GET ${uri}`)
@@ -106,7 +141,8 @@ let createTransform = (options) => new Transform({
     .pipe(progress(`${path} [:bar] :rate/bps :percent :etas`))
     .pipe(zlib.createGunzip())
     .pipe(split())
-    .pipe(createTransform({date, type, aggregators}))
+    .pipe(mapDataTransformFactory({date, type, tradeAggregators, quoteAggregators}))
+    .pipe(aggregateDataTransformFactory({type}))
 
     var archive = archiver('zip',   {zlib: { level: 9 } });
     let output = fs.createWriteStream(path)
@@ -117,7 +153,9 @@ let createTransform = (options) => new Transform({
     output.on('error', e => onError(e, options))
     stream.on('error', e => onError(e, options))
 
-    if(type === QUOTE) return
+    let aggregators
+    if(type === TRADE) aggregators = tradeAggregators
+    if(type === QUOTE) aggregators = quoteAggregators
 
     output.on('close', () => aggregators.forEach(aggregator => {
       let path = getPath({date, type, resolution: aggregator.resolution})
